@@ -21,9 +21,9 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
-# CORS_ALLOWED_ORIGINS = [
-#    'http://localhost:3000'
-# ]
+CORS_ALLOWED_ORIGINS = [
+    'https://react-next-swart-zeta.vercel.app'
+]
 
 STORAGES = {
     "default": {
