@@ -45,5 +45,5 @@ class CurrentUserView(APIView):
         serializer = UserSelfUpdateSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(UserSerializer(request.user).data)  # return full details
+            return Response(UserSelfUpdateSerializer(request.user).data)  # return full details
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -54,4 +54,6 @@ class UserSerializer(serializers.ModelSerializer):
 class UserSelfUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['full_name', 'email']  # only these can be updated
+        fields = ['full_name', 'email']
+        read_only_fields = ['email']  # ✅ make email read-only
+
