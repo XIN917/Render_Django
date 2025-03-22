@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
@@ -24,12 +25,30 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """ Custom JWT Token Serializer to include the user's role, is_superuser, and is_staff """
+    """
+    Custom JWT Token Serializer to include role info and return
+    detailed authentication errors.
+    """
     def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise AuthenticationFailed("User with this email does not exist.")
+
+        if not user.check_password(password):
+            raise AuthenticationFailed("Incorrect password.")
+
+        if not user.is_active:
+            raise AuthenticationFailed("This account is inactive.")
+
+        # Everything is good, proceed with token generation
         data = super().validate(attrs)
-        data["role"] = self.user.role
-        data["is_superuser"] = self.user.is_superuser
-        data["is_staff"] = self.user.is_staff
+        data["role"] = user.role
+        data["is_superuser"] = user.is_superuser
+        data["is_staff"] = user.is_staff
         return data
 
 class SetPasswordSerializer(serializers.Serializer):
