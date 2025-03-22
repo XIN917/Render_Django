@@ -2,7 +2,8 @@ from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
-from .serializers import UserSerializer, UserCreateSerializer
+from rest_framework import status
+from .serializers import UserSerializer, UserCreateSerializer, UserSelfUpdateSerializer
 
 User = get_user_model()
 
@@ -33,9 +34,16 @@ class UserViewSet(viewsets.ModelViewSet):
         return User.objects.filter(id=user.id)
 
 class CurrentUserView(APIView):
-    """Retrieve details of the currently authenticated user."""
+    """Retrieve or update the currently authenticated user."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user)  # still show full info
         return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UserSelfUpdateSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(UserSerializer(request.user).data)  # return full details
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

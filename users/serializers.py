@@ -5,7 +5,7 @@ User = get_user_model()
 
 ### 🟢 CREATE USER SERIALIZER ###
 class UserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
@@ -49,3 +49,9 @@ class UserSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+### 🔴 USER SELF UPDATE SERIALIZER ###
+class UserSelfUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['full_name', 'email']  # only these can be updated

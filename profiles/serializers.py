@@ -1,12 +1,20 @@
 from rest_framework import serializers
 from .models import Profile
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class ProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source='user.email', read_only=True)
-    full_name = serializers.CharField(source='user.full_name', read_only=True)
-    role = serializers.CharField(source='user.role', read_only=True)
-    bio = serializers.CharField(required=False, allow_blank=True)
-
     class Meta:
         model = Profile
-        fields = ['id', 'email', 'full_name', 'role', 'bio']
+        fields = ['id', 'bio']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        user = instance.user
+        representation['user'] = {
+            'id': user.id,
+            'full_name': user.full_name,
+            'email': user.email,
+        }
+        return representation
