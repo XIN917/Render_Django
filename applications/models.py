@@ -15,6 +15,8 @@ class TeacherApplication(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="applications")
+    certificate = models.FileField(upload_to='certificates/', null=True, blank=True)
+    additional_info = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
