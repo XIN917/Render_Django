@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +22,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-m&b1ssb^9^b8t(lbkusran3&#azlfz^yp@tg^zbsp#8n%0fgqo'
+# SECRET_KEY = 'django-insecure-m&b1ssb^9^b8t(lbkusran3&#azlfz^yp@tg^zbsp#8n%0fgqo'
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -44,6 +46,7 @@ INSTALLED_APPS = [
     'users',
     'authentication',
     'applications',
+    'profiles',
 ]
 
 MIDDLEWARE = [
@@ -159,3 +162,6 @@ SIMPLE_JWT = {
 }
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
