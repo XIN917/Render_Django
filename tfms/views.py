@@ -48,17 +48,6 @@ class MyTFMsView(generics.ListAPIView):
         else:
             queryset = TFM.objects.none()
 
-        # Optional filters
-        status_param = self.request.query_params.get('status')
-        search_param = self.request.query_params.get('search')
-
-        if status_param:
-            queryset = queryset.filter(status=status_param)
-        if search_param:
-            queryset = queryset.filter(title__icontains=search_param)
-
-        return queryset.distinct()
-
 
 # 🔍 View and update a specific TFM (based on role and relation)
 class TFMDetailUpdateView(generics.RetrieveUpdateAPIView):

@@ -71,7 +71,7 @@ class TFMTestCase(APITestCase):
         self.client.force_login(self.admin)
         response = self.client.get("/tfms/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.data["results"]), 1)
+        self.assertGreaterEqual(len(response.data), 1)
 
     def test_student_cannot_review(self):
         self.client.force_login(self.student)

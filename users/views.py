@@ -25,7 +25,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:
-            return User.objects.all()
+            return self.queryset
         return User.objects.filter(id=user.id)
 
 class CurrentUserView(APIView):
