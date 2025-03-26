@@ -9,6 +9,7 @@ urlpatterns = [
     path('auth/', include('authentication.urls')),
     path('applications/', include('applications.urls')),
     path('profiles/', include('profiles.urls')),
+    path('tfms/', include('tfms.urls')),
 ]
 
 if settings.DEBUG:

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'authentication',
     'applications',
     'profiles',
+    'tfms',
 ]
 
 MIDDLEWARE = [
@@ -140,6 +141,7 @@ AUTH_USER_MODEL = 'users.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # for tests
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

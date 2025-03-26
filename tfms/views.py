@@ -1,0 +1,128 @@
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
+from django.contrib.auth import get_user_model
+
+from .models import TFM, Director, TFMReview
+from .serializers import TFMSerializer
+from users.permissions import IsStudent, IsTeacher, IsAdmin, IsAdminOrTeacher
+
+User = get_user_model()
+
+
+# 🧑‍🎓 Student uploads their own TFM
+class StudentUploadTFMView(generics.CreateAPIView):
+    serializer_class = TFMSerializer
+    permission_classes = [permissions.IsAuthenticated, IsStudent]
+
+
+# 👨‍🏫 Admin or teacher creates a TFM (auto-approved)
+class AdminOrTeacherCreateTFMView(generics.CreateAPIView):
+    serializer_class = TFMSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
+
+
+# 🔐 Admin-only view: list all TFMs
+class AllTFMsAdminView(generics.ListAPIView):
+    serializer_class = TFMSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        return TFM.objects.all()
+
+
+# 📃 Each user sees their associated TFMs
+class MyTFMsView(generics.ListAPIView):
+    serializer_class = TFMSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == User.STUDENT:
+            queryset = TFM.objects.filter(student=user)
+        elif user.role == User.TEACHER:
+            queryset = TFM.objects.filter(directors__user=user)
+        elif user.is_staff or user.is_superuser:
+            queryset = TFM.objects.all()
+        else:
+            queryset = TFM.objects.none()
+
+        # Optional filters
+        status_param = self.request.query_params.get('status')
+        search_param = self.request.query_params.get('search')
+
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+        if search_param:
+            queryset = queryset.filter(title__icontains=search_param)
+
+        return queryset.distinct()
+
+
+# 🔍 View and update a specific TFM (based on role and relation)
+class TFMDetailUpdateView(generics.RetrieveUpdateAPIView):
+    serializer_class = TFMSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = TFM.objects.all()
+
+    def get_object(self):
+        tfm = super().get_object()
+        user = self.request.user
+
+        if user.is_staff or user.is_superuser:
+            return tfm
+        if user.role == User.STUDENT and tfm.student == user:
+            return tfm
+        if user.role == User.TEACHER and tfm.directors.filter(user=user).exists():
+            return tfm
+
+        raise PermissionDenied("You don't have permission to access this TFM.")
+
+    def patch(self, request, *args, **kwargs):
+        tfm = self.get_object()
+        user = request.user
+
+        if user.role == User.STUDENT and tfm.status != 'pending':
+            raise PermissionDenied("You can only update your TFM while it's pending.")
+
+        return super().patch(request, *args, **kwargs)
+
+
+# 📝 Teachers (if director) or admins can review TFMs
+class ReviewTFMView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
+
+    def post(self, request, pk):
+        user = request.user
+        tfm = TFM.objects.filter(pk=pk).first()
+        if not tfm:
+            return Response({'detail': 'TFM not found.'}, status=404)
+
+        if user.role == User.TEACHER and not tfm.directors.filter(user=user).exists():
+            return Response({'detail': 'You are not a director of this TFM.'}, status=403)
+
+        if tfm.status != 'pending':
+            return Response({'detail': 'TFM has already been reviewed.'}, status=400)
+
+        action = request.data.get('action')
+        comment = request.data.get('comment', '')
+
+        if action not in ['approved', 'rejected']:
+            return Response({'detail': 'Invalid action. Must be "approved" or "rejected".'}, status=400)
+
+        tfm.status = action
+        tfm.save()
+
+        TFMReview.objects.create(
+            tfm=tfm,
+            reviewed_by=user,
+            action=action,
+            comment=comment,
+        )
+
+        return Response({
+            'detail': f'TFM has been {action}.',
+            'status': action,
+            'tfm_id': tfm.id,
+        }, status=200)
