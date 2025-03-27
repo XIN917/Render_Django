@@ -5,7 +5,7 @@ from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 
 from .models import TFM, Director, TFMReview
-from .serializers import TFMSerializer
+from .serializers import TFMSerializer, TFMReadSerializer
 from users.permissions import IsStudent, IsTeacher, IsAdmin, IsAdminOrTeacher
 
 User = get_user_model()
@@ -25,7 +25,7 @@ class AdminOrTeacherCreateTFMView(generics.CreateAPIView):
 
 # 🔐 Admin-only view: list all TFMs
 class AllTFMsAdminView(generics.ListAPIView):
-    serializer_class = TFMSerializer
+    serializer_class = TFMReadSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
 
     def get_queryset(self):
@@ -34,26 +34,30 @@ class AllTFMsAdminView(generics.ListAPIView):
 
 # 📃 Each user sees their associated TFMs
 class MyTFMsView(generics.ListAPIView):
-    serializer_class = TFMSerializer
+    serializer_class = TFMReadSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
         if user.role == User.STUDENT:
-            queryset = TFM.objects.filter(student=user)
+            return TFM.objects.filter(student=user)
         elif user.role == User.TEACHER:
-            queryset = TFM.objects.filter(directors__user=user)
+            return TFM.objects.filter(directors__user=user)
         elif user.is_staff or user.is_superuser:
-            queryset = TFM.objects.all()
-        else:
-            queryset = TFM.objects.none()
+            return TFM.objects.all()
+        return TFM.objects.none()
 
 
 # 🔍 View and update a specific TFM (based on role and relation)
-class TFMDetailUpdateView(generics.RetrieveUpdateAPIView):
-    serializer_class = TFMSerializer
-    permission_classes = [permissions.IsAuthenticated]
+class TFMDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     queryset = TFM.objects.all()
+    serializer_class = TFMSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return TFMReadSerializer
+        return TFMSerializer
 
     def get_object(self):
         tfm = super().get_object()

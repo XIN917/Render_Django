@@ -18,6 +18,7 @@ class TFM(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     file = models.FileField(upload_to='tfms/')
+    attachment = models.FileField(upload_to='tfms/attachments/', null=True, blank=True)  # Optional ZIP
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
@@ -26,7 +27,7 @@ class TFM(models.Model):
         related_name='submitted_tfms',
         on_delete=models.CASCADE
     )
-    directors = models.ManyToManyField(Director, related_name='directed_tfms')
+    directors = models.ManyToManyField('Director', related_name='directed_tfms')
 
     def __str__(self):
         return self.title

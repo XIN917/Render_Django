@@ -5,12 +5,15 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from .serializers import UserSerializer, UserCreateSerializer, UserSelfUpdateSerializer
 from .permissions import IsAdmin
+from django_filters.rest_framework import DjangoFilterBackend
 
 User = get_user_model()
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['role']
 
     def get_permissions(self):
         if self.action in ['list', 'create', 'destroy']:

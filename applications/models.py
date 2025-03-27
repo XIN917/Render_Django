@@ -1,8 +1,8 @@
 from django.db import models
-from django.conf import settings  # Import User model dynamically
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
-User = settings.AUTH_USER_MODEL  # Reference the custom User model
+User = settings.AUTH_USER_MODEL
 
 class TeacherApplication(models.Model):
     PENDING = 'pending'
