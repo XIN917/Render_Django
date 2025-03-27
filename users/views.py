@@ -31,6 +31,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return self.queryset
         return User.objects.filter(id=user.id)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_superuser:
+            return Response(
+                {"detail": "You cannot delete a superuser."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
 class CurrentUserView(APIView):
     """Retrieve or update the currently authenticated user."""
     permission_classes = [permissions.IsAuthenticated]
