@@ -1,9 +1,8 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from tfms.models import TFM, Director
+from tfms.models import TFM
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.urls import reverse
 import tempfile
 
 User = get_user_model()
@@ -31,9 +30,6 @@ class TFMTestCase(APITestCase):
             role=User.STUDENT
         )
 
-        # Create a Director object for teacher
-        self.director = Director.objects.create(user=self.teacher)
-
         # Create a TFM
         self.tfm = TFM.objects.create(
             title="Initial TFM",
@@ -42,7 +38,7 @@ class TFMTestCase(APITestCase):
             student=self.student,
             status="pending"
         )
-        self.tfm.directors.add(self.director)
+        self.tfm.directors.add(self.teacher)  # ✅ Assign teacher directly as director
 
     def test_student_upload(self):
         self.client.force_authenticate(user=self.student)
@@ -54,7 +50,7 @@ class TFMTestCase(APITestCase):
                 "title": "TFM Test Student",
                 "description": "TFM uploaded by student",
                 "file": pdf_file,
-                "directors": [self.teacher.id],  # ✅ required
+                "directors": [self.teacher.id],  # ✅ teacher ID as director
             }
             response = self.client.post("/tfms/upload/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -95,7 +91,7 @@ class TFMTestCase(APITestCase):
             "comment": "Looks good"
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
+
     def test_admin_create_with_missing_directors(self):
         self.client.force_authenticate(user=self.admin)
         with tempfile.NamedTemporaryFile(suffix=".pdf") as pdf_file:
@@ -123,7 +119,7 @@ class TFMTestCase(APITestCase):
                 "description": "All required fields",
                 "file": pdf_file,
                 "student": self.student.id,
-                "directors": [self.teacher.id],  # must be valid director
+                "directors": [self.teacher.id],
             }
             response = self.client.post("/tfms/create/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)

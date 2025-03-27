@@ -1,5 +1,4 @@
 from django.contrib import admin
-from .models import TFM, Director
+from .models import TFM
 
 admin.site.register(TFM)
-admin.site.register(Director)

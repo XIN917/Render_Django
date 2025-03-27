@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 
-from .models import TFM, Director, TFMReview
+from .models import TFM, TFMReview
 from .serializers import TFMSerializer, TFMReadSerializer
 from users.permissions import IsStudent, IsTeacher, IsAdmin, IsAdminOrTeacher
 
@@ -42,7 +42,7 @@ class MyTFMsView(generics.ListAPIView):
         if user.role == User.STUDENT:
             return TFM.objects.filter(student=user)
         elif user.role == User.TEACHER:
-            return TFM.objects.filter(directors__user=user)
+            return TFM.objects.filter(directors=user)
         elif user.is_staff or user.is_superuser:
             return TFM.objects.all()
         return TFM.objects.none()
@@ -51,9 +51,8 @@ class MyTFMsView(generics.ListAPIView):
 # 🔍 View and update a specific TFM (based on role and relation)
 class TFMDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     queryset = TFM.objects.all()
-    serializer_class = TFMSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
-    
+    permission_classes = [permissions.IsAuthenticated]
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return TFMReadSerializer
@@ -67,7 +66,7 @@ class TFMDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
             return tfm
         if user.role == User.STUDENT and tfm.student == user:
             return tfm
-        if user.role == User.TEACHER and tfm.directors.filter(user=user).exists():
+        if user.role == User.TEACHER and tfm.directors.filter(id=user.id).exists():
             return tfm
 
         raise PermissionDenied("You don't have permission to access this TFM.")
@@ -92,7 +91,7 @@ class ReviewTFMView(APIView):
         if not tfm:
             return Response({'detail': 'TFM not found.'}, status=404)
 
-        if user.role == User.TEACHER and not tfm.directors.filter(user=user).exists():
+        if user.role == User.TEACHER and not tfm.directors.filter(id=user.id).exists():
             return Response({'detail': 'You are not a director of this TFM.'}, status=403)
 
         if tfm.status != 'pending':
