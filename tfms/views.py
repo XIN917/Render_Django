@@ -42,7 +42,7 @@ class MyTFMsView(generics.ListAPIView):
         if user.role == User.STUDENT:
             return TFM.objects.filter(student=user)
         elif user.role == User.TEACHER:
-            return TFM.objects.filter(directors=user)
+            return TFM.objects.filter(directors=user).distinct()
         elif user.is_staff or user.is_superuser:
             return TFM.objects.all()
         return TFM.objects.none()

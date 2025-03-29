@@ -30,17 +30,36 @@ class TFMSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         user = request.user
 
-        title = attrs.get("title") or self.instance.title if self.instance else None
-        student = attrs.get("student") or self.instance.student if self.instance else (user if user.role == User.STUDENT else None)
-        directors = attrs.get("directors") or list(self.instance.directors.all()) if self.instance else []
+        # Safely determine title
+        title = attrs.get("title") or (self.instance.title if self.instance else None)
 
+        # Determine student
+        if "student" in attrs:
+            student = attrs["student"]
+        elif self.instance:
+            student = self.instance.student
+        elif user.role == User.STUDENT:
+            student = user
+        else:
+            student = None
+
+        # Determine directors
+        if "directors" in attrs:
+            directors = attrs["directors"]
+        elif self.instance:
+            directors = list(self.instance.directors.all())
+        else:
+            directors = []
+
+        # Validate student presence
         if not student:
             raise serializers.ValidationError({"student": "A student must be assigned."})
 
+        # Validate director rules
         if not directors and not (user.role == User.TEACHER and not user.is_staff and not user.is_superuser):
             raise serializers.ValidationError({"directors": "At least one director must be assigned."})
 
-        # 🛡️ Prevent duplicate, excluding self if editing
+        # 🛡️ Prevent duplicate
         existing_tfms = TFM.objects.filter(title=title, student=student).exclude(pk=getattr(self.instance, "pk", None))
         for tfm in existing_tfms:
             existing_directors = set(tfm.directors.values_list("id", flat=True))
@@ -52,6 +71,7 @@ class TFMSerializer(serializers.ModelSerializer):
 
         return attrs
 
+
     def validate_directors(self, value):
         if len(value) > 2:
             raise serializers.ValidationError("A TFM can have a maximum of 2 directors.")
@@ -61,8 +81,10 @@ class TFMSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         provided_directors = validated_data.pop("directors", [])
 
+         # ✅ Make sure student is assigned if given
+        student = validated_data.get("student")
         # Auto assign student if not admin
-        if not validated_data.get("student") and user.role == User.STUDENT:
+        if not student and user.role == User.STUDENT:
             validated_data["student"] = user
 
         # Auto assign director if teacher and no explicit directors

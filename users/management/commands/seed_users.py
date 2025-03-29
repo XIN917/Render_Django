@@ -19,11 +19,13 @@ class Command(BaseCommand):
             {
                 "email": "teacher1@example.com",
                 "full_name": "Dr. John Director",
+                "password": "password123",
                 "role": "teacher"
             },
             {
                 "email": "teacher2@example.com",
                 "full_name": "Dr. Jane Director",
+                "password": "password123",
                 "role": "teacher"
             },
             {
@@ -44,11 +46,13 @@ class Command(BaseCommand):
             {
                 "email": "student1@example.com",
                 "full_name": "Alice Student",
+                "password": "password123",
                 "role": "student"
             },
             {
                 "email": "student2@example.com",
                 "full_name": "Bob Student",
+                "password": "password123",
                 "role": "student"
             },
             {
