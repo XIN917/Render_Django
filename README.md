@@ -26,6 +26,11 @@ venv\Scripts\activate  # For Windows
 pip install -r requirements.txt
 ```
 
+If you need to update the `requirements.txt` file with the current dependencies, run:
+```sh
+pip freeze > requirements.txt
+```
+
 ### 4️⃣ Set Up Environment Variables (`.env`)
 Create a `.env` file in the `backend/` directory and add:
 ```ini

@@ -1,49 +1,69 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth import get_user_model
 from rest_framework import status
+from django.contrib.auth import get_user_model
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .serializers import UserSerializer, UserCreateSerializer, UserSelfUpdateSerializer
+from .permissions import IsAdmin
 
 User = get_user_model()
 
 class UserViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing users.
-    - `GET /users/` → List all users (Admin only)
-    - `POST /users/` → Create a new user (Admin only)
-    - `GET /users/<id>/` → Retrieve a user (Admin or self)
-    - `PUT/PATCH /users/<id>/` → Update a user (Admin or self)
-    - `DELETE /users/<id>/` → Delete a user (Admin only)
-    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['role']
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        # ✅ Allow any authenticated user to list and retrieve users
+        return [permissions.IsAuthenticated()]
 
     def get_serializer_class(self):
-        """Use different serializers for creating users."""
         if self.action == "create":
             return UserCreateSerializer
         return UserSerializer
 
     def get_queryset(self):
-        """Admins can see all users, regular users can only see themselves."""
         user = self.request.user
-        if user.is_staff:
-            return User.objects.all()
-        return User.objects.filter(id=user.id)
+
+        # 🟢 Admin can view all users
+        if user.is_staff or user.is_superuser:
+            return self.queryset
+
+        # 🟢 Authenticated users can view teachers/students, but not everyone
+        role_filter = self.request.query_params.get('role')
+        if role_filter in ['teacher', 'student']:
+            return self.queryset.filter(role=role_filter, is_superuser=False)
+
+        # 🟠 Fallback to only current user
+        return self.queryset.filter(id=user.id)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_superuser:
+            return Response(
+                {"detail": "You cannot delete a superuser."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
 
 class CurrentUserView(APIView):
-    """Retrieve or update the currently authenticated user."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)  # still show full info
+        serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
     def patch(self, request):
         serializer = UserSelfUpdateSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(UserSelfUpdateSerializer(request.user).data)  # return full details
+            return Response(UserSelfUpdateSerializer(request.user).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
