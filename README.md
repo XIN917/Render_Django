@@ -1,3 +1,7 @@
+Here’s the full Markdown section for your `README.md` with the added instructions on how to create a new Django app:
+
+---
+
 ## **🔹 Backend**
 ```md
 # Backend - Django API
@@ -50,6 +54,35 @@ python manage.py createsuperuser  # Follow prompts to create admin user
 ```sh
 python manage.py runserver
 ```
+
+## 🧱 Creating a New App
+To create a new Django app within the project:
+
+1. Run the `startapp` command:
+    ```sh
+    python manage.py startapp myapp
+    ```
+
+2. Add the app to `INSTALLED_APPS` in `settings.py`:
+    ```python
+    INSTALLED_APPS = [
+        ...
+        'myapp',
+    ]
+    ```
+
+3. (Optional but recommended) Create `urls.py`, `serializers.py`, and structure your models and views.
+
+4. Include app routes in the main `urls.py`:
+    ```python
+    path('api/myapp/', include('myapp.urls')),
+    ```
+
+5. Apply migrations as needed:
+    ```sh
+    python manage.py makemigrations
+    python manage.py migrate
+    ```
 
 ## 🔥 Available Commands
 | Command | Description |
