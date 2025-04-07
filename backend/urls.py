@@ -10,6 +10,9 @@ urlpatterns = [
     path('applications/', include('applications.urls')),
     path('profiles/', include('profiles.urls')),
     path('tfms/', include('tfms.urls')),
+    path('slots/', include('slots.urls')),
+    path('tracks/', include('tracks.urls')),
+    path('tribunals/', include('tribunals.urls')),
 ]
 
 if settings.DEBUG:
