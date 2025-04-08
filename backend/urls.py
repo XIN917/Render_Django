@@ -13,6 +13,7 @@ urlpatterns = [
     path('slots/', include('slots.urls')),
     path('tracks/', include('tracks.urls')),
     path('tribunals/', include('tribunals.urls')),
+    path('config/', include('config.urls')),
 ]
 
 if settings.DEBUG:

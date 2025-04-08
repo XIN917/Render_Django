@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from rest_framework import generics, permissions
+from .models import PresentationDay
+from .serializers import PresentationDaySerializer
 
-# Create your views here.
+class PresentationDayView(generics.RetrieveAPIView):
+    serializer_class = PresentationDaySerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_object(self):
+        return PresentationDay.objects.first()

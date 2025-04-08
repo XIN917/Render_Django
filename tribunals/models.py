@@ -21,3 +21,10 @@ class Tribunal(models.Model):
 
     def __str__(self):
         return f"Tribunal for {self.tfm.title}"
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+        if self.tfm and self.slot:
+            self.slot.tfms.add(self.tfm)
