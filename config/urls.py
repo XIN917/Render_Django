@@ -1,6 +1,10 @@
-from django.urls import path
-from .views import PresentationDayView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import PresentationDayViewSet
+
+router = DefaultRouter()
+router.register(r'day', PresentationDayViewSet, basename='presentation-day')
 
 urlpatterns = [
-    path('day/', PresentationDayView.as_view(), name='presentation-day'),
+    path('', include(router.urls)),
 ]

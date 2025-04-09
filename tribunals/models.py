@@ -13,17 +13,23 @@ class Tribunal(models.Model):
     vocals = models.ManyToManyField(User, related_name='tribunal_vocals')
 
     def clean(self):
+        # Only validate basic fields — M2M (vocals) is not yet available before save
+        if self.president == self.secretary:
+            raise ValidationError("President and secretary must be different.")
+
+    def clean_roles(self):
+        """Call this after vocals are assigned."""
         roles = {self.president, self.secretary}
         if roles & set(self.vocals.all()):
             raise ValidationError("A judge cannot hold more than one role in a tribunal.")
-        if len(self.vocals.all()) < 1:
+        if self.vocals.count() < 1:
             raise ValidationError("At least one vocal is required.")
 
     def __str__(self):
         return f"Tribunal for {self.tfm.title}"
 
     def save(self, *args, **kwargs):
-        self.clean()
+        self.clean()  # Only basic field validation
         super().save(*args, **kwargs)
 
         if self.tfm and self.slot:

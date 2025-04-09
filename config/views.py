@@ -1,10 +1,12 @@
-from rest_framework import generics, permissions
+from rest_framework import viewsets, permissions
 from .models import PresentationDay
 from .serializers import PresentationDaySerializer
 
-class PresentationDayView(generics.RetrieveAPIView):
+class PresentationDayViewSet(viewsets.ModelViewSet):
+    queryset = PresentationDay.objects.all()
     serializer_class = PresentationDaySerializer
-    permission_classes = [permissions.IsAdminUser]
 
-    def get_object(self):
-        return PresentationDay.objects.first()
+    def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.AllowAny()]
+        return [permissions.IsAdminUser()]

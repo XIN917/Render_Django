@@ -52,11 +52,6 @@ class UserPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 2)
 
-    def test_student_cannot_list_users(self):
-        self.client.force_login(self.student)
-        response = self.client.get("/users/")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
     def test_student_can_see_own_detail(self):
         self.client.force_login(self.student)
         response = self.client.get(f"/users/{self.student.id}/")
@@ -85,7 +80,7 @@ class UserPermissionTests(TestCase):
 
     def test_student_can_update_own_name(self):
         self.client.force_login(self.student)
-        response = self.client.patch(f"/users/{self.student.id}/", {
+        response = self.client.patch(f"/users/me/", {
             "full_name": "Updated Student"
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)

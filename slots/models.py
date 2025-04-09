@@ -9,6 +9,7 @@ class Slot(models.Model):
     end_time = models.TimeField()
     tfm_duration = models.DurationField(default=timedelta(minutes=45))
     tfms = models.ManyToManyField(TFM, blank=True)
+    room = models.CharField(max_length=100)
 
     def clean(self):
         if self.start_time.minute not in (0, 30) or self.end_time.minute not in (0, 30):
@@ -18,5 +19,15 @@ class Slot(models.Model):
         if self.end_time <= self.start_time:
             raise ValidationError("End time must be after start time.")
 
+        # Check for overlapping slots in the same room
+        overlapping_slots = Slot.objects.filter(
+            room=self.room,
+            start_time__lt=self.end_time,
+            end_time__gt=self.start_time
+        ).exclude(pk=self.pk)
+
+        if overlapping_slots.exists():
+            raise ValidationError("There is a time conflict with another slot in the same room.")
+
     def __str__(self):
-        return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+        return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')} in Room {self.room}"

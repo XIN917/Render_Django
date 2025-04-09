@@ -17,12 +17,9 @@ class UserViewSet(viewsets.ModelViewSet):
     filterset_fields = ['role']
 
     def get_permissions(self):
-        if self.action == 'create':
-            return [permissions.IsAuthenticated(), IsAdmin()]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsAdmin()]
-        # ✅ Allow any authenticated user to list and retrieve users
-        return [permissions.IsAuthenticated()]
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsAdmin()]
 
     def get_serializer_class(self):
         if self.action == "create":
