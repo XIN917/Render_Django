@@ -13,9 +13,11 @@ class Tribunal(models.Model):
     vocals = models.ManyToManyField(User, related_name='tribunal_vocals')
 
     def clean(self):
-        # Only validate basic fields — M2M (vocals) is not yet available before save
+        # Validate president and secretary
         if self.president == self.secretary:
             raise ValidationError("President and secretary must be different.")
+        if self.president.is_superuser or self.secretary.is_superuser:
+            raise ValidationError("Superusers cannot be assigned as president or secretary.")
 
     def clean_roles(self):
         """Call this after vocals are assigned."""
@@ -24,6 +26,8 @@ class Tribunal(models.Model):
             raise ValidationError("A judge cannot hold more than one role in a tribunal.")
         if self.vocals.count() < 1:
             raise ValidationError("At least one vocal is required.")
+        if any(vocal.is_superuser for vocal in self.vocals.all()):
+            raise ValidationError("Superusers cannot be assigned as vocals.")
 
     def __str__(self):
         return f"Tribunal for {self.tfm.title}"

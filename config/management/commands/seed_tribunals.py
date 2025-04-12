@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
         tfms = TFM.objects.all()
         slots = Slot.objects.all()
-        teachers = User.objects.filter(role='teacher')
+        teachers = User.objects.filter(role='teacher', is_superuser=False)
 
         if teachers.count() < 4 or tfms.count() == 0:
             self.stdout.write(self.style.WARNING("Not enough data to seed tribunals"))
