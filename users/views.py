@@ -30,8 +30,12 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         # 🟢 Admin can view all users
-        if user.is_staff or user.is_superuser:
-            return self.queryset
+        if user.is_superuser:
+            return self.queryset.exclude(id=user.id)
+        
+        if user.is_staff:
+            # 🟡 Staff can view all users, but not superusers
+            return self.queryset.exclude(is_superuser=True).exclude(id=user.id)
 
         # 🟢 Authenticated users can view teachers/students, but not everyone
         role_filter = self.request.query_params.get('role')

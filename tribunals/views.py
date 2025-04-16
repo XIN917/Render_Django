@@ -1,10 +1,14 @@
 from rest_framework import viewsets, permissions
 from .models import Tribunal
-from .serializers import TribunalSerializer
+from .serializers import TribunalSerializer, TribunalReadSerializer
 
 class TribunalViewSet(viewsets.ModelViewSet):
     queryset = Tribunal.objects.all()
-    serializer_class = TribunalSerializer
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return TribunalReadSerializer
+        return TribunalSerializer
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
