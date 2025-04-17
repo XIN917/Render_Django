@@ -1,12 +1,7 @@
 from rest_framework import serializers
 from .models import Slot
 from tfms.serializers import TFMReadSerializer
-
-from rest_framework import serializers
-from .models import Slot
-from tfms.serializers import TFMReadSerializer
 from datetime import time
-
 
 class SlotSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,10 +13,8 @@ class SlotSerializer(serializers.ModelSerializer):
         end_time = data.get('end_time')
         room = data.get('room')
         presentation_day = data.get('presentation_day')
-        max_tfms = data.get('max_tfms', getattr(self.instance, 'max_tfms', 2))
-        tfms = data.get('tfms', None)
 
-        # --- Time Format Validation ---
+        # Time format validation
         if start_time and start_time.minute not in (0, 30):
             raise serializers.ValidationError({'start_time': "Start time must be on the hour or half-hour."})
         if end_time and end_time.minute not in (0, 30):
@@ -33,7 +26,7 @@ class SlotSerializer(serializers.ModelSerializer):
         if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError({'end_time': "End time must be after start time."})
 
-        # --- Overlapping Slots Check ---
+        # Overlapping check
         if start_time and end_time and room and presentation_day:
             overlapping = Slot.objects.filter(
                 presentation_day=presentation_day,
@@ -43,18 +36,13 @@ class SlotSerializer(serializers.ModelSerializer):
             )
             if self.instance:
                 overlapping = overlapping.exclude(pk=self.instance.pk)
-
             if overlapping.exists():
                 raise serializers.ValidationError("This time slot overlaps with another slot in the same room.")
-
-        # --- Max TFM Check ---
-        if tfms is not None and len(tfms) > max_tfms:
-            raise serializers.ValidationError({'tfms': f"You can only assign up to {max_tfms} TFM(s) to this slot."})
 
         return data
 
 class SlotReadSerializer(serializers.ModelSerializer):
-    tfms = TFMReadSerializer(many=True, read_only=True)
+    tfms = serializers.SerializerMethodField()
     presentation_day = serializers.SerializerMethodField()
     is_full = serializers.SerializerMethodField()
     start_time = serializers.TimeField(format='%H:%M')
@@ -65,6 +53,9 @@ class SlotReadSerializer(serializers.ModelSerializer):
         model = Slot
         fields = '__all__'
 
+    def get_tfms(self, obj):
+        return TFMReadSerializer(obj.get_tfms(), many=True).data
+
     def get_presentation_day(self, obj):
         return obj.presentation_day.date.isoformat()
 
@@ -72,7 +63,6 @@ class SlotReadSerializer(serializers.ModelSerializer):
         return obj.is_full()
 
     def get_tfm_duration(self, obj):
-        # format timedelta as HH:MM
         total_seconds = int(obj.tfm_duration.total_seconds())
         hours, remainder = divmod(total_seconds, 3600)
         minutes, _ = divmod(remainder, 60)
