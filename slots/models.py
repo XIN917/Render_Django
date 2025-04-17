@@ -1,33 +1,20 @@
 from django.db import models
-from datetime import time, timedelta
-from django.core.exceptions import ValidationError
+from datetime import timedelta
 from tfms.models import TFM
+from config.models import PresentationDay
 
 
 class Slot(models.Model):
+    presentation_day = models.ForeignKey(PresentationDay, on_delete=models.CASCADE, default=PresentationDay.get_or_create_singleton)
     start_time = models.TimeField()
     end_time = models.TimeField()
     tfm_duration = models.DurationField(default=timedelta(minutes=45))
+    max_tfms = models.PositiveIntegerField(default=2)
     tfms = models.ManyToManyField(TFM, blank=True)
     room = models.CharField(max_length=100)
 
-    def clean(self):
-        if self.start_time.minute not in (0, 30) or self.end_time.minute not in (0, 30):
-            raise ValidationError("Time must be on the hour or half-hour.")
-        if self.start_time < time(8, 0) or self.end_time > time(21, 0):
-            raise ValidationError("Slot time must be between 08:00 and 21:00.")
-        if self.end_time <= self.start_time:
-            raise ValidationError("End time must be after start time.")
-
-        # Check for overlapping slots in the same room
-        overlapping_slots = Slot.objects.filter(
-            room=self.room,
-            start_time__lt=self.end_time,
-            end_time__gt=self.start_time
-        ).exclude(pk=self.pk)
-
-        if overlapping_slots.exists():
-            raise ValidationError("There is a time conflict with another slot in the same room.")
+    def is_full(self):
+        return self.tfms.count() >= self.max_tfms
 
     def __str__(self):
-        return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')} in Room {self.room}"
+        return f"{self.presentation_day.date} | {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')} in Room {self.room}"

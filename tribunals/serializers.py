@@ -1,43 +1,56 @@
 from rest_framework import serializers
-from .models import Tribunal
-from tfms.serializers import TFMReadSerializer  # Import the TFM serializer
-from slots.serializers import SlotSerializer  # Import the Slot serializer
-from users.serializers import UserSerializer  # Import the User serializer
+from .models import Tribunal, TribunalMember
+from tfms.serializers import TFMReadSerializer
+from slots.serializers import SlotSerializer
+from users.serializers import UserSerializer
+from users.models import User
+
+
+class TribunalMemberSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = TribunalMember
+        fields = ['user', 'role']
+
 
 class TribunalReadSerializer(serializers.ModelSerializer):
-    tfm = TFMReadSerializer()  # Use the nested serializer for the TFM field
-    slot = SlotSerializer()  # Use the nested serializer for the slots field
-    president = UserSerializer()  # Use the nested serializer for the president field
-    secretary = UserSerializer()  # Use the nested serializer for the secretary field
-    vocals = UserSerializer(many=True)  # Use the nested serializer for the vocals field
+    tfm = TFMReadSerializer()
+    slot = SlotSerializer()
+    members = serializers.SerializerMethodField()
 
     class Meta:
         model = Tribunal
-        fields = '__all__'
+        fields = ['id', 'tfm', 'slot', 'members']
+
+    def get_members(self, obj):
+        members = TribunalMember.objects.filter(tribunal=obj)
+        return TribunalMemberSerializer(members, many=True).data
+
 
 class TribunalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tribunal
-        fields = '__all__'
+        fields = ['id', 'tfm', 'slot']
+
+class AssignTribunalRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TribunalMember
+        fields = ['tribunal', 'user', 'role']
 
     def validate(self, data):
-        president = data.get('president')
-        secretary = data.get('secretary')
-        vocals = data.get('vocals', [])
+        role = data['role']
+        tribunal = data['tribunal']
+        user = data['user']
 
-        # Validate president and secretary
-        if president == secretary:
-            raise serializers.ValidationError("President and secretary must be different.")
-        if president.is_superuser or secretary.is_superuser:
-            raise serializers.ValidationError("Superusers cannot be assigned as president or secretary.")
+        if TribunalMember.objects.filter(tribunal=tribunal, user=user).exists():
+            raise serializers.ValidationError("This user is already a member of this tribunal.")
 
-        # Validate vocals
-        roles = {president, secretary}
-        if roles & set(vocals):
-            raise serializers.ValidationError("A judge cannot hold more than one role in a tribunal.")
-        if len(vocals) < 1:
-            raise serializers.ValidationError("At least one vocal is required.")
-        if any(vocal.is_superuser for vocal in vocals):
-            raise serializers.ValidationError("Superusers cannot be assigned as vocals.")
+        if role in ['president', 'secretary']:
+            if TribunalMember.objects.filter(tribunal=tribunal, role=role).exists():
+                raise serializers.ValidationError(f"The role '{role}' is already taken in this tribunal.")
+
+        if user.is_superuser:
+            raise serializers.ValidationError("Superusers cannot be assigned to tribunals.")
 
         return data

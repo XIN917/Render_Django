@@ -1,15 +1,16 @@
 from django.core.management.base import BaseCommand
-from tribunals.models import Tribunal
+from tribunals.models import Tribunal, TribunalMember
 from tfms.models import TFM
 from slots.models import Slot
 from users.models import User
-from django.core.exceptions import ValidationError
+
 
 class Command(BaseCommand):
     help = "Seed test tribunals"
 
     def handle(self, *args, **kwargs):
         Tribunal.objects.all().delete()
+        TribunalMember.objects.all().delete()
 
         tfms = TFM.objects.all()
         slots = Slot.objects.all()
@@ -21,23 +22,11 @@ class Command(BaseCommand):
 
         for i, tfm in enumerate(tfms[:len(slots)]):
             slot = slots[i]
-            president = teachers[0]
-            secretary = teachers[1]
-            vocals = teachers[2:4]  # Make sure these aren't president/secretary
+            tribunal = Tribunal.objects.create(tfm=tfm, slot=slot)
 
-            tribunal = Tribunal(
-                tfm=tfm,
-                slot=slot,
-                president=president,
-                secretary=secretary
-            )
-            tribunal.save()
-            tribunal.vocals.set(vocals)
+            TribunalMember.objects.create(tribunal=tribunal, user=teachers[0], role='president')
+            TribunalMember.objects.create(tribunal=tribunal, user=teachers[1], role='secretary')
+            TribunalMember.objects.create(tribunal=tribunal, user=teachers[2], role='vocal')
+            TribunalMember.objects.create(tribunal=tribunal, user=teachers[3], role='vocal')
 
-            try:
-                tribunal.clean_roles()  # Validate after M2M set
-            except ValidationError as e:
-                self.stdout.write(self.style.ERROR(f"❌ Invalid tribunal for {tfm.title}: {e.messages[0]}"))
-                tribunal.delete()  # Optional: cleanup invalid entry
-            else:
-                self.stdout.write(self.style.SUCCESS(f"✅ Created Tribunal for {tfm.title}"))
+            self.stdout.write(self.style.SUCCESS(f"✅ Created Tribunal for TFM: {tfm.title}"))
