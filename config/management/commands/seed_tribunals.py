@@ -1,16 +1,17 @@
 from django.core.management.base import BaseCommand
-from tribunals.models import Tribunal, TribunalMember
+from tribunals.models import Tribunal
+from judges.models import Judge
 from tfms.models import TFM
 from slots.models import Slot
 from users.models import User
 
-
 class Command(BaseCommand):
-    help = "Seed test tribunals"
+    help = "Seed test tribunals and auto-assign teachers as judges"
 
     def handle(self, *args, **kwargs):
+        # Clear existing tribunals and judges if you want to reset
         Tribunal.objects.all().delete()
-        TribunalMember.objects.all().delete()
+        Judge.objects.all().delete()
 
         tfms = TFM.objects.all()
         slots = Slot.objects.all()
@@ -22,11 +23,12 @@ class Command(BaseCommand):
 
         for i, tfm in enumerate(tfms[:len(slots)]):
             slot = slots[i]
+            # Create a tribunal with TFM and Slot
             tribunal = Tribunal.objects.create(tfm=tfm, slot=slot)
 
-            TribunalMember.objects.create(tribunal=tribunal, user=teachers[0], role='president')
-            TribunalMember.objects.create(tribunal=tribunal, user=teachers[1], role='secretary')
-            TribunalMember.objects.create(tribunal=tribunal, user=teachers[2], role='vocal')
-            TribunalMember.objects.create(tribunal=tribunal, user=teachers[3], role='vocal')
+            # Auto-assign teachers to tribunal
+            roles = ['president', 'secretary', 'vocal', 'vocal']
+            for idx, role in enumerate(roles):
+                Judge.objects.create(tribunal=tribunal, user=teachers[idx], role=role)
 
             self.stdout.write(self.style.SUCCESS(f"✅ Created Tribunal for TFM: {tfm.title}"))

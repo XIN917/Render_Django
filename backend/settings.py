@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'slots',
     'tracks',
     'tribunals',
+    'judges',
     'config',
 ]
 
