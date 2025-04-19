@@ -18,3 +18,10 @@ class Slot(models.Model):
 
     def get_tfms(self):
         return [tribunal.tfm for tribunal in self.tribunals.select_related('tfm') if tribunal.tfm]
+    
+    def save(self, *args, **kwargs):
+        if self.start_time and self.max_tfms and self.tfm_duration:
+            from datetime import datetime
+            start_dt = datetime.combine(datetime.today(), self.start_time)
+            self.end_time = (start_dt + self.tfm_duration * self.max_tfms).time()
+        super().save(*args, **kwargs)
