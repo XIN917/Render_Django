@@ -4,6 +4,11 @@ from tfms.serializers import TFMReadSerializer
 from datetime import time
 
 class SlotSerializer(serializers.ModelSerializer):
+    presentation_date = serializers.DateField(source="presentation_day.date", read_only=True)
+    track_title = serializers.CharField(source="track.title", read_only=True)
+    start_time = serializers.TimeField(format='%H:%M')
+    end_time = serializers.TimeField(format='%H:%M')
+
     class Meta:
         model = Slot
         fields = '__all__'
@@ -43,11 +48,12 @@ class SlotSerializer(serializers.ModelSerializer):
 
 class SlotReadSerializer(serializers.ModelSerializer):
     tfms = serializers.SerializerMethodField()
-    presentation_day = serializers.SerializerMethodField()
+    presentation_date = serializers.DateField(source="presentation_day.date", read_only=True)
     is_full = serializers.SerializerMethodField()
     start_time = serializers.TimeField(format='%H:%M')
     end_time = serializers.TimeField(format='%H:%M')
     tfm_duration = serializers.SerializerMethodField()
+    track_title = serializers.CharField(source="track.title", read_only=True)
 
     class Meta:
         model = Slot
@@ -55,9 +61,6 @@ class SlotReadSerializer(serializers.ModelSerializer):
 
     def get_tfms(self, obj):
         return TFMReadSerializer(obj.get_tfms(), many=True).data
-
-    def get_presentation_day(self, obj):
-        return obj.presentation_day.date.isoformat()
 
     def get_is_full(self, obj):
         return obj.is_full()

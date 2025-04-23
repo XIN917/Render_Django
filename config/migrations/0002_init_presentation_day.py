@@ -5,7 +5,7 @@ from django.db import migrations
 def create_presentation_day(apps, schema_editor):
     PresentationDay = apps.get_model('config', 'PresentationDay')
     if not PresentationDay.objects.exists():
-        PresentationDay.objects.create(date="2025-06-15")  # 👈 Set your default date here
+        PresentationDay.objects.create(date="2025-06-16")  # 👈 Set your default date here
 
 class Migration(migrations.Migration):
 

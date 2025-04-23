@@ -9,11 +9,11 @@ class Command(BaseCommand):
         Track.objects.all().delete()
         slots = Slot.objects.all()
 
-        track = Track.objects.create(title="AI & ML")
+        track = Track.objects.create(title="Track 1")
         track.slots.set(slots[:2])
         track.save()
 
-        track = Track.objects.create(title="Web & Backend")
+        track = Track.objects.create(title="Track 2")
         track.slots.set(slots[2:])
         track.save()
 
