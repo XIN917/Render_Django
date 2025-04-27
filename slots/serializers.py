@@ -20,9 +20,9 @@ class SlotSerializer(serializers.ModelSerializer):
         presentation_day = data.get('presentation_day')
 
         # Time format validation
-        if start_time and start_time.minute not in (0, 30):
+        if start_time and start_time.minute not in (0, 15, 30):
             raise serializers.ValidationError({'start_time': "Start time must be on the hour or half-hour."})
-        if end_time and end_time.minute not in (0, 30):
+        if end_time and end_time.minute not in (0, 15, 30):
             raise serializers.ValidationError({'end_time': "End time must be on the hour or half-hour."})
         if start_time and start_time < time(8, 0):
             raise serializers.ValidationError({'start_time': "Start time must be after 08:00."})
