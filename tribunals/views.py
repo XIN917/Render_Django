@@ -3,6 +3,7 @@ from .models import Tribunal, Judge
 from .serializers import TribunalSerializer, TribunalReadSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from judges.serializers import AssignJudgeRoleSerializer
 
 class TribunalViewSet(viewsets.ModelViewSet):
     queryset = Tribunal.objects.all()
@@ -37,3 +38,23 @@ class TribunalViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(ready, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def auto_assign(self, request, pk=None):
+        tribunal = self.get_object()
+        user = request.user
+        role = request.data.get("role")
+
+        if role not in ['president', 'secretary', 'vocal']:
+            return Response({"detail": "Invalid role."}, status=400)
+
+        serializer = AssignJudgeRoleSerializer(data={
+            "tribunal": tribunal.id,
+            "user": user.id,
+            "role": role
+        })
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": f"You have been assigned as {role}."})
+        else:
+            return Response(serializer.errors, status=400)
