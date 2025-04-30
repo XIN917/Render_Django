@@ -13,10 +13,12 @@ class TribunalReadSerializer(serializers.ModelSerializer):
     judges = serializers.SerializerMethodField()
     is_ready = serializers.SerializerMethodField()
     is_full = serializers.SerializerMethodField()
+    start_time = serializers.SerializerMethodField()
+    end_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Tribunal
-        fields = ['id', 'tfm', 'slot', 'judges', 'is_ready', 'is_full']
+        fields = ['id', 'tfm', 'slot', 'judges', 'is_ready', 'is_full', 'start_time', 'end_time']
 
     def get_judges(self, obj):
         judge_entries = Judge.objects.select_related("user").filter(tribunal=obj)
@@ -27,6 +29,16 @@ class TribunalReadSerializer(serializers.ModelSerializer):
 
     def get_is_full(self, obj):
         return obj.is_full()
+
+    def get_start_time(self, obj):
+        base_time = datetime.combine(date.today(), obj.slot.start_time)
+        tribunal_start = base_time + (obj.index * obj.slot.tfm_duration)
+        return tribunal_start.strftime("%H:%M")
+
+    def get_end_time(self, obj):
+        base_time = datetime.combine(date.today(), obj.slot.start_time)
+        tribunal_end = base_time + ((obj.index + 1) * obj.slot.tfm_duration)
+        return tribunal_end.strftime("%H:%M")
 
 
 class TribunalSerializer(serializers.ModelSerializer):
