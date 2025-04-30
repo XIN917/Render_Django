@@ -8,9 +8,13 @@ MIN_JUDGES = 3
 MAX_JUDGES = 5
 
 class Tribunal(models.Model):
-    tfm = models.OneToOneField(TFM, on_delete=models.CASCADE)
+    tfm = models.OneToOneField(TFM, on_delete=models.CASCADE, unique=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='tribunals')
     judges = models.ManyToManyField(User, through='judges.Judge', related_name='tribunals')
+    index = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = (('slot', 'index'),)
 
     def __str__(self):
         return f"Tribunal for {self.tfm.title}"
