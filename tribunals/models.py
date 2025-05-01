@@ -11,7 +11,7 @@ class Tribunal(models.Model):
     tfm = models.OneToOneField(TFM, on_delete=models.CASCADE, unique=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='tribunals')
     judges = models.ManyToManyField(User, through='judges.Judge', related_name='tribunals')
-    index = models.IntegerField(default=0)
+    index = models.IntegerField(default=1)  # start from 1
 
     class Meta:
         unique_together = (('slot', 'index'),)
@@ -21,15 +21,16 @@ class Tribunal(models.Model):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            existing_indexes = list(self.slot.tribunals.values_list('index', flat=True))
-            if len(existing_indexes) >= self.slot.max_tfms:
-                raise ValueError(f"Slot '{self.slot}' has reached its maximum number of TFMs.")
-
-            if self.index == 0 and 0 in existing_indexes:
-                # Assign next available index if 0 is taken
-                next_index = 0
+            # Only auto-assign if the index was not explicitly passed
+            if self.index == 1 and self.slot.tribunals.filter(index=1).exists():
+                existing_indexes = set(self.slot.tribunals.values_list('index', flat=True))
+                next_index = 1  # start from 1
                 while next_index in existing_indexes:
                     next_index += 1
+
+                if next_index > self.slot.max_tfms:
+                    raise ValueError(f"Slot '{self.slot}' has reached its maximum number of TFMs.")
+
                 self.index = next_index
 
         super().save(*args, **kwargs)
