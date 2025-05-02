@@ -6,29 +6,27 @@ from slots.models import Slot
 from users.models import User
 
 class Command(BaseCommand):
-    help = "Seed test tribunals and auto-assign teachers as judges"
+    help = "Seed tribunals for all TFMs using available slots"
 
     def handle(self, *args, **kwargs):
-        # Clear existing tribunals and judges if you want to reset
-        Tribunal.objects.all().delete()
-        Judge.objects.all().delete()
-
-        tfms = TFM.objects.all()
-        slots = Slot.objects.all()
-        teachers = User.objects.filter(role='teacher', is_superuser=False)
-
-        if teachers.count() < 4 or tfms.count() == 0:
-            self.stdout.write(self.style.WARNING("Not enough data to seed tribunals"))
+        teachers = list(User.objects.filter(role='teacher', is_superuser=False))
+        if len(teachers) < 4:
+            self.stdout.write(self.style.ERROR("❌ Not enough teachers to create tribunals"))
             return
 
-        for i, tfm in enumerate(tfms[:len(slots)]):
-            slot = slots[i]
-            # Create a tribunal with TFM and Slot
+        tfms = list(TFM.objects.all())
+        slots = list(Slot.objects.all())
+
+        for i, tfm in enumerate(tfms):
+            slot = slots[i % len(slots)]
+            if Tribunal.objects.filter(tfm=tfm).exists():
+                continue
+
             tribunal = Tribunal.objects.create(tfm=tfm, slot=slot)
-
-            # Auto-assign teachers to tribunal
             roles = ['president', 'secretary', 'vocal', 'vocal']
-            for idx, role in enumerate(roles):
-                Judge.objects.create(tribunal=tribunal, user=teachers[idx], role=role)
+            assigned = teachers[i % len(teachers):] + teachers[:i % len(teachers)]
 
-            self.stdout.write(self.style.SUCCESS(f"✅ Created Tribunal for TFM: {tfm.title}"))
+            for j, role in enumerate(roles):
+                Judge.objects.get_or_create(tribunal=tribunal, user=assigned[j % len(teachers)], role=role)
+
+            self.stdout.write(self.style.SUCCESS(f"✅ Tribunal created for: {tfm.title}"))

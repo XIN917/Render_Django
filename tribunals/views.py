@@ -1,9 +1,10 @@
 from rest_framework import viewsets, permissions
-from .models import Tribunal, Judge
+from .models import Tribunal
 from .serializers import TribunalSerializer, TribunalReadSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from judges.serializers import AssignJudgeRoleSerializer
+from judges.models import Judge
 
 class TribunalViewSet(viewsets.ModelViewSet):
     queryset = Tribunal.objects.all()

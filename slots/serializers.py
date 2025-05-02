@@ -4,7 +4,7 @@ from tfms.serializers import TFMReadSerializer
 from datetime import time
 
 class SlotSerializer(serializers.ModelSerializer):
-    presentation_date = serializers.DateField(source="presentation_day.date", read_only=True)
+    presentation_day = serializers.DateField(source="track.semester.presentation_day", read_only=True)
     track_title = serializers.CharField(source="track.title", read_only=True)
     start_time = serializers.TimeField(format='%H:%M')
     end_time = serializers.TimeField(format='%H:%M')
@@ -17,7 +17,8 @@ class SlotSerializer(serializers.ModelSerializer):
         start_time = data.get('start_time')
         end_time = data.get('end_time')
         room = data.get('room')
-        presentation_day = data.get('presentation_day')
+        track = data.get('track') or getattr(self.instance, 'track', None)
+        presentation_day = track.semester.presentation_day if track and track.semester else None
 
         # Time format validation
         if start_time and start_time.minute not in (0, 15, 30, 45):
@@ -34,7 +35,7 @@ class SlotSerializer(serializers.ModelSerializer):
         # Overlapping check
         if start_time and end_time and room and presentation_day:
             overlapping = Slot.objects.filter(
-                presentation_day=presentation_day,
+                track__semester__presentation_day=presentation_day,
                 room=room,
                 start_time__lt=end_time,
                 end_time__gt=start_time
@@ -46,9 +47,10 @@ class SlotSerializer(serializers.ModelSerializer):
 
         return data
 
+
 class SlotReadSerializer(serializers.ModelSerializer):
     tfms = serializers.SerializerMethodField()
-    presentation_date = serializers.DateField(source="presentation_day.date", read_only=True)
+    presentation_day = serializers.DateField(source="track.semester.presentation_day", read_only=True)
     is_full = serializers.SerializerMethodField()
     start_time = serializers.TimeField(format='%H:%M')
     end_time = serializers.TimeField(format='%H:%M')

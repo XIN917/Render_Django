@@ -1,16 +1,19 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from datetime import time, timedelta, date
+
 from users.models import User
 from tfms.models import TFM
 from slots.models import Slot
 from tribunals.models import Tribunal
 from judges.models import Judge
-from config.models import PresentationDay
-from datetime import time, timedelta
-from django.core.files.uploadedfile import SimpleUploadedFile
+from tracks.models import Track
+from semester.models import Semester
 
 class TribunalModelTest(TestCase):
     def setUp(self):
+        # Users
         self.student = User.objects.create_user(
             email='student@example.com',
             full_name='Student User',
@@ -48,8 +51,21 @@ class TribunalModelTest(TestCase):
             role='teacher'
         )
 
-        mock_file = SimpleUploadedFile("tfm.pdf", b"dummy content")
+        # Semester and Track (required by Slot)
+        self.semester = Semester.objects.create(
+            name="Spring 2025",
+            start_date=date(2025, 2, 1),
+            end_date=date(2025, 6, 30),
+            presentation_day=date(2025, 6, 15)
+        )
 
+        self.track = Track.objects.create(
+            title="Test Track",
+            semester=self.semester
+        )
+
+        # TFM
+        mock_file = SimpleUploadedFile("tfm.pdf", b"dummy content")
         self.tfm = TFM.objects.create(
             title='Test TFM',
             description='Test description',
@@ -59,10 +75,9 @@ class TribunalModelTest(TestCase):
         )
         self.tfm.directors.set([self.director])
 
-        self.presentation_day = PresentationDay.get_or_create_singleton()
-
+        # Slot (now linked to a track)
         self.slot = Slot.objects.create(
-            presentation_day=self.presentation_day,
+            track=self.track,
             start_time=time(9, 0),
             end_time=time(10, 0),
             tfm_duration=timedelta(minutes=45),

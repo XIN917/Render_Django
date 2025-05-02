@@ -1,8 +1,9 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from config.models import PresentationDay
 from slots.models import Slot
+from tracks.models import Track
+from semester.models import Semester
 from datetime import time
 
 User = get_user_model()
@@ -29,14 +30,21 @@ class SlotAPITest(APITestCase):
         # Authenticate as admin
         self.client.login(email="admin@example.com", password="adminpass")
 
-        # Create presentation day
-        self.presentation_day = PresentationDay.get_or_create_singleton()
+        # Create a semester and a track
+        self.semester = Semester.objects.create(
+            name="Test Semester",
+            start_date="2025-01-01",
+            end_date="2025-06-30",
+            presentation_day="2025-06-15"
+        )
 
-        self.slot_url = "/slots/"  # Make sure this matches your actual router path
+        self.track = Track.objects.create(title="Test Track", semester=self.semester)
+
+        self.slot_url = "/slots/"  # Ensure this matches your router path
 
     def test_invalid_slot_not_on_half_hour(self):
         data = {
-            "presentation_day": self.presentation_day.id,
+            "track": self.track.id,
             "start_time": "08:10",
             "end_time": "09:00",
             "room": "Room 1"
@@ -47,7 +55,7 @@ class SlotAPITest(APITestCase):
 
     def test_invalid_slot_outside_working_hours(self):
         data = {
-            "presentation_day": self.presentation_day.id,
+            "track": self.track.id,
             "start_time": "07:30",
             "end_time": "08:30",
             "room": "Room 2"
@@ -57,17 +65,17 @@ class SlotAPITest(APITestCase):
         self.assertIn("start_time", response.data)
 
     def test_slot_overlap_same_room(self):
-        # Create a valid slot first
+        # Create a valid existing slot
         Slot.objects.create(
-            presentation_day=self.presentation_day,
+            track=self.track,
             start_time=time(10, 0),
             end_time=time(11, 0),
             room="Room 3"
         )
 
-        # Attempt overlapping slot
+        # Attempt to create an overlapping slot in same room and track
         data = {
-            "presentation_day": self.presentation_day.id,
+            "track": self.track.id,
             "start_time": "10:30",
             "end_time": "11:30",
             "room": "Room 3"

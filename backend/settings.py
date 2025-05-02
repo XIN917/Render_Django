@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'tribunals',
     'judges',
     'config',
+    'semester',
+    'institutions',
 ]
 
 MIDDLEWARE = [

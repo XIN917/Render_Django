@@ -1,37 +1,46 @@
 from django.core.management.base import BaseCommand
 from slots.models import Slot
-from config.models import PresentationDay
+from tracks.models import Track
+from semester.models import Semester
 from datetime import datetime, date, time, timedelta
 
-
 class Command(BaseCommand):
-    help = "Seed test slots for the active PresentationDay"
+    help = "Seed test slots for 3 semesters with multiple tracks"
 
     def handle(self, *args, **kwargs):
-        Slot.objects.all().delete()
-
-        # Get or create the singleton presentation day with fixed or custom date
-        presentation_day = PresentationDay.get_or_create_singleton(date(2025, 6, 15))
-        self.stdout.write(self.style.SUCCESS(f"Using Presentation Day: {presentation_day.date}"))
-
         durations = [timedelta(minutes=45), timedelta(minutes=60)]
-        times = [(8, 0), (9, 30), (11, 0), (13, 0), (14, 30)]
+        base_times = [(8 + i, 0) for i in range(8)]  # 8:00 to 15:00
+        room_prefixes = ['A', 'B', 'C']
+        room_numbers = [101, 102, 103]
+        rooms = [f"{p}{n}" for p in room_prefixes for n in room_numbers]
 
-        room_prefixes = ['A', 'B']
-        room_numbers = [101, 102, 103, 104, 105]
-        rooms = [f"{prefix}{number}" for prefix in room_prefixes for number in room_numbers]
+        semester_names = [
+            "2023-2024 Fall",
+            "2024-2025 Spring",
+            "2025-2026 Fall"
+        ]
 
-        for i, (h, m) in enumerate(times):
-            start = time(hour=h, minute=m)
-            end = (datetime.combine(date.today(), start) + durations[i % 2]).time()
-            room = rooms[i % len(rooms)]
+        for semester_name in semester_names:
+            try:
+                semester = Semester.objects.get(name=semester_name)
+            except Semester.DoesNotExist:
+                self.stdout.write(self.style.ERROR(f"❌ Semester '{semester_name}' not found."))
+                continue
 
-            slot = Slot.objects.create(
-                presentation_day=presentation_day,
-                start_time=start,
-                end_time=end,
-                tfm_duration=durations[i % 2],
-                room=room,
-                max_tfms=2,
-            )
-            self.stdout.write(f"✅ Created Slot: {slot}")
+            tracks = Track.objects.filter(semester=semester)
+            for track in tracks:
+                for i, (h, m) in enumerate(base_times):
+                    start = time(hour=h, minute=m)
+                    end = (datetime.combine(date.today(), start) + durations[i % 2]).time()
+                    room = rooms[i % len(rooms)]
+
+                    if not Slot.objects.filter(track=track, start_time=start, room=room).exists():
+                        Slot.objects.create(
+                            track=track,
+                            start_time=start,
+                            end_time=end,
+                            tfm_duration=durations[i % 2],
+                            room=room,
+                            max_tfms=2
+                        )
+                self.stdout.write(self.style.SUCCESS(f"✅ Slots ensured for track: {track.title}"))

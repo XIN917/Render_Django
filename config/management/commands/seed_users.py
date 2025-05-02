@@ -7,87 +7,43 @@ class Command(BaseCommand):
     help = "Seed default admin, teachers, and students"
 
     def handle(self, *args, **kwargs):
-        users_to_create = [
-            {
-                "email": "admin@email.com",
-                "password": "admin1234",
-                "full_name": "Admin User",
-                "role": "teacher",
-                "is_staff": True,
-                "is_superuser": True,
-            },
-            {
-                "email": "teacher1@example.com",
-                "full_name": "Dr. John Director",
-                "password": "password123",
-                "role": "teacher"
-            },
-            {
-                "email": "teacher2@example.com",
-                "full_name": "Dr. Jane Director",
-                "password": "password123",
-                "role": "teacher"
-            },
-            {
-                "email": "teacher3@example.com",
-                "full_name": "Dr. Clara Mentor",
-                "role": "teacher"
-            },
-            {
-                "email": "teacher4@example.com",
-                "full_name": "Dr. Mike Supervisor",
-                "role": "teacher"
-            },
-            {
-                "email": "teacher5@example.com",
-                "full_name": "Dr. Emma Advisor",
-                "role": "teacher"
-            },
-            {
-                "email": "student1@example.com",
-                "full_name": "Alice Student",
-                "password": "password123",
-                "role": "student"
-            },
-            {
-                "email": "student2@example.com",
-                "full_name": "Bob Student",
-                "password": "password123",
-                "role": "student"
-            },
-            {
-                "email": "student3@example.com",
-                "full_name": "Charlie Learner",
-                "role": "student"
-            },
-            {
-                "email": "student4@example.com",
-                "full_name": "Diana Researcher",
-                "role": "student"
-            },
-            {
-                "email": "student5@example.com",
-                "full_name": "Ethan Scholar",
-                "role": "student"
-            },
-        ]
+        # Admin user
+        if not User.objects.filter(email="admin@email.com").exists():
+            admin = User.objects.create_user(
+                email="admin@email.com",
+                full_name="Admin User",
+                role="teacher",
+                password="admin1234",
+                is_staff=True,
+                is_superuser=True,
+            )
+            admin.save()
+            self.stdout.write(self.style.SUCCESS("✅ Created admin user"))
 
-        for data in users_to_create:
-            if User.objects.filter(email=data["email"]).exists():
-                self.stdout.write(f"⚠️  User already exists: {data['email']}")
-                continue
+        # Teachers
+        for i in range(1, 21):
+            email = f"teacher{i}@example.com"
+            if not User.objects.filter(email=email).exists():
+                user = User.objects.create_user(
+                    email=email,
+                    full_name=f"Dr. Teacher {i}",
+                    role="teacher",
+                    password="pass1234"
+                )
+                self.stdout.write(self.style.SUCCESS(f"✅ Created: {email}"))
+            else:
+                self.stdout.write(f"⚠️  Teacher already exists: {email}")
 
-            create_kwargs = {
-                "email": data["email"],
-                "full_name": data["full_name"],
-                "role": data["role"],
-                "password": data.get("password"),
-            }
-
-            user = User.objects.create_user(**create_kwargs)
-            user.is_staff = data.get("is_staff", False)
-            user.is_superuser = data.get("is_superuser", False)
-            user.save()
-
-            self.stdout.write(self.style.SUCCESS(f"✅ Created: {user.email}"))
-
+        # Students
+        for i in range(1, 21):
+            email = f"student{i}@example.com"
+            if not User.objects.filter(email=email).exists():
+                user = User.objects.create_user(
+                    email=email,
+                    full_name=f"Student {i}",
+                    role="student",
+                    password="pass1234"
+                )
+                self.stdout.write(self.style.SUCCESS(f"✅ Created: {email}"))
+            else:
+                self.stdout.write(f"⚠️  Student already exists: {email}")

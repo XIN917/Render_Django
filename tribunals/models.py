@@ -10,8 +10,7 @@ MAX_JUDGES = 5
 class Tribunal(models.Model):
     tfm = models.OneToOneField(TFM, on_delete=models.CASCADE, unique=True)
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='tribunals')
-    judges = models.ManyToManyField(User, through='judges.Judge', related_name='tribunals')
-    index = models.IntegerField(default=1)  # start from 1
+    index = models.IntegerField(default=1)
 
     class Meta:
         unique_together = (('slot', 'index'),)
