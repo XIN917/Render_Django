@@ -3,7 +3,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from slots.models import Slot
 from tracks.models import Track
-from semester.models import Semester
+from semesters.models import Semester
 from datetime import time
 
 User = get_user_model()

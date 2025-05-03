@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     'tribunals',
     'judges',
     'config',
-    'semester',
+    'semesters',
     'institutions',
 ]
 

@@ -15,6 +15,8 @@ urlpatterns = [
     path('tribunals/', include('tribunals.urls')),
     path('judges/', include('judges.urls')),
     path('config/', include('config.urls')),
+    path('semesters/', include('semesters.urls')),
+    path('institutions/', include('institutions.urls')),
 ]
 
 if settings.DEBUG:

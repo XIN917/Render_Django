@@ -9,7 +9,7 @@ from slots.models import Slot
 from tribunals.models import Tribunal
 from judges.models import Judge
 from tracks.models import Track
-from semester.models import Semester
+from semesters.models import Semester
 
 class TribunalModelTest(TestCase):
     def setUp(self):

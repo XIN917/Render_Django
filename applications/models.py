@@ -21,6 +21,7 @@ class TeacherApplication(models.Model):
     attachment = models.FileField(upload_to='attachments/', null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
         if self.attachment and not self.attachment.name.lower().endswith('.pdf'):

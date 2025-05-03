@@ -1,5 +1,5 @@
 from django.db import models
-from semester.models import Semester
+from semesters.models import Semester
 
 class Track(models.Model):
     title = models.CharField(max_length=100)

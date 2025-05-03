@@ -1,6 +1,7 @@
 from django.db import models
 from datetime import timedelta
-from tracks.models import Track  # Assuming it now links to Semester
+from tracks.models import Track
+from django.core.exceptions import ValidationError
 
 class Slot(models.Model):
     start_time = models.TimeField()
@@ -21,6 +22,3 @@ class Slot(models.Model):
 
     def get_tfms(self):
         return [tribunal.tfm for tribunal in self.tribunals.select_related('tfm') if tribunal.tfm]
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)

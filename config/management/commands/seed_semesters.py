@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from semester.models import Semester
+from semesters.models import Semester
 from datetime import date
 
 class Command(BaseCommand):

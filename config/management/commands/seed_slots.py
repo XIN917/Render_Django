@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from slots.models import Slot
 from tracks.models import Track
-from semester.models import Semester
+from semesters.models import Semester
 from datetime import datetime, date, time, timedelta
 
 class Command(BaseCommand):

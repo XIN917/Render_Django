@@ -1,10 +1,9 @@
 from django.core.management.base import BaseCommand
 from tracks.models import Track
-from slots.models import Slot
-from semester.models import Semester
+from semesters.models import Semester
 
 class Command(BaseCommand):
-    help = "Seed 5 tracks per semester and assign available slots"
+    help = "Seed 5 tracks per semester (without assigning slots)"
 
     def handle(self, *args, **kwargs):
         semesters = {
@@ -38,15 +37,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"⚠️ Semester not found: {semester_name}"))
                 continue
 
-            unassigned_slots = Slot.objects.filter(track__isnull=True, track__semester=semester) | Slot.objects.filter(track__semester=semester, track=None)
-            slot_chunks = [list(unassigned_slots[i::len(track_titles)]) for i in range(len(track_titles))]
-
-            for i, title in enumerate(track_titles):
+            for title in track_titles:
                 track, created = Track.objects.get_or_create(title=title, semester=semester)
-                if slot_chunks[i]:
-                    track.slots.set(slot_chunks[i])
-                    self.stdout.write(self.style.SUCCESS(f"✅ {'Created' if created else 'Updated'} track '{title}' with {len(slot_chunks[i])} slots"))
-                else:
-                    self.stdout.write(f"ℹ️ No available slots to assign to '{title}'")
+                self.stdout.write(self.style.SUCCESS(f"✅ {'Created' if created else 'Exists'} track '{title}'"))
 
         self.stdout.write(self.style.SUCCESS("🎯 Finished seeding tracks for all semesters."))
