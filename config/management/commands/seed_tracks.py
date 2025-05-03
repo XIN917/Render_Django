@@ -12,22 +12,22 @@ class Command(BaseCommand):
                 "Mobile App Development",
                 "Smart City Infrastructures",
                 "Quantum Cryptography",
-                "Ethics in Artificial Intelligence"
+                "Ethics in Artificial Intelligence",
             ],
             "2024-2025 Spring": [
                 "AI and Machine Learning",
                 "Health Informatics",
                 "Blockchain Applications",
                 "Sustainable Technology",
-                "Cybersecurity and Privacy"
+                "Cybersecurity and Privacy",
             ],
             "2025-2026 Fall": [
                 "Augmented Reality Design",
                 "Human-Robot Interaction",
                 "Energy-Efficient Computing",
                 "Digital Transformation in Industry",
-                "Autonomous Systems Engineering"
-            ]
+                "Autonomous Systems Engineering",
+            ],
         }
 
         for semester_name, track_titles in semesters.items():
@@ -37,8 +37,14 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"⚠️ Semester not found: {semester_name}"))
                 continue
 
-            for title in track_titles:
-                track, created = Track.objects.get_or_create(title=title, semester=semester)
-                self.stdout.write(self.style.SUCCESS(f"✅ {'Created' if created else 'Exists'} track '{title}'"))
+            tracks_to_create = [
+                Track(title=title, semester=semester)
+                for title in track_titles
+                if not Track.objects.filter(title=title, semester=semester).exists()
+            ]
 
-        self.stdout.write(self.style.SUCCESS("🎯 Finished seeding tracks for all semesters."))
+            if tracks_to_create:
+                Track.objects.bulk_create(tracks_to_create)
+                self.stdout.write(self.style.SUCCESS(f"✅ Created {len(tracks_to_create)} tracks for {semester_name}"))
+            else:
+                self.stdout.write(f"⚠️ All tracks for {semester_name} already exist")

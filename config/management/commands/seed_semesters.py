@@ -24,19 +24,22 @@ class Command(BaseCommand):
                 "start_date": date(2025, 9, 1),
                 "end_date": date(2026, 1, 31),
                 "presentation_day": date(2026, 1, 20),
-            }
+            },
         ]
 
-        for data in semesters:
-            semester, created = Semester.objects.get_or_create(
+        semesters_to_create = [
+            Semester(
                 name=data["name"],
-                defaults={
-                    "start_date": data["start_date"],
-                    "end_date": data["end_date"],
-                    "presentation_day": data["presentation_day"],
-                }
+                start_date=data["start_date"],
+                end_date=data["end_date"],
+                presentation_day=data["presentation_day"],
             )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"✅ Created semester: {semester.name}"))
-            else:
-                self.stdout.write(f"ℹ️ Semester already exists: {semester.name}")
+            for data in semesters
+            if not Semester.objects.filter(name=data["name"]).exists()
+        ]
+
+        if semesters_to_create:
+            Semester.objects.bulk_create(semesters_to_create)
+            self.stdout.write(self.style.SUCCESS(f"✅ Created {len(semesters_to_create)} semesters"))
+        else:
+            self.stdout.write("⚠️ All semesters already exist")

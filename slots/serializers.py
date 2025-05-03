@@ -25,8 +25,8 @@ class SlotSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'start_time': "Start time must be on the quarter hour (00, 15, 30, or 45 minutes)."})
         if end_time and end_time.minute not in (0, 15, 30, 45):
             raise serializers.ValidationError({'end_time': "End time must be on the quarter hour (00, 15, 30, or 45 minutes)."})
-        if start_time and start_time < time(8, 0):
-            raise serializers.ValidationError({'start_time': "Start time must be after 08:00."})
+        if start_time and start_time < time(10, 0):
+            raise serializers.ValidationError({'start_time': "Start time must be after 10:00."})
         if end_time and end_time > time(21, 0):
             raise serializers.ValidationError({'end_time': "End time must be before 21:00."})
         if start_time and end_time and end_time <= start_time:

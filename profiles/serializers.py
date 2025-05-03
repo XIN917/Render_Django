@@ -5,7 +5,7 @@ from institutions.serializers import InstitutionSerializer
 
 User = get_user_model()
 
-class ProfileSerializer(serializers.ModelSerializer):
+class ProfileReadSerializer(serializers.ModelSerializer):
     institution = InstitutionSerializer(read_only=True)
 
     class Meta:
@@ -22,3 +22,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'role': user.role,
         }
         return representation
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['bio', 'institution', 'photo']

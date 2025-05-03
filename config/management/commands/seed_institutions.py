@@ -13,9 +13,14 @@ class Command(BaseCommand):
             {"name": "UOC", "city": "Barcelona"},
         ]
 
-        for uni in universities:
-            obj, created = Institution.objects.get_or_create(name=uni["name"], defaults={"city": uni["city"]})
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"✅ Created: {obj.name}"))
-            else:
-                self.stdout.write(f"⚠️ Already exists: {obj.name}")
+        institutions_to_create = [
+            Institution(name=uni["name"], city=uni["city"])
+            for uni in universities
+            if not Institution.objects.filter(name=uni["name"]).exists()
+        ]
+
+        if institutions_to_create:
+            Institution.objects.bulk_create(institutions_to_create)
+            self.stdout.write(self.style.SUCCESS(f"✅ Created {len(institutions_to_create)} institutions"))
+        else:
+            self.stdout.write("⚠️ All institutions already exist")

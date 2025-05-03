@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         students = list(User.objects.filter(role="student"))
-        teachers = list(User.objects.filter(role="teacher", is_superuser=False))
+        teachers = list(User.objects.filter(role="teacher", is_superuser=False, is_staff=False))
 
         tfm_titles = [
             "AI in Medical Imaging",

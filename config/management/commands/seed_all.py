@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.core import management
+import time
 
 class Command(BaseCommand):
     help = "Seed the full database: users, semesters, institutions, tracks, slots, TFMs, tribunals"
@@ -16,11 +17,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE("📅 Seeding semesters..."))
         management.call_command("seed_semesters")
 
-        self.stdout.write(self.style.NOTICE("📚 Seeding slots..."))
-        management.call_command("seed_slots")
-
         self.stdout.write(self.style.NOTICE("📊 Seeding tracks..."))
         management.call_command("seed_tracks")
+        
+        self.stdout.write(self.style.NOTICE("📚 Seeding slots..."))
+        management.call_command("seed_slots")
 
         self.stdout.write(self.style.NOTICE("📝 Seeding TFMs..."))
         management.call_command("seed_tfms")

@@ -1,5 +1,3 @@
-# seed_tribunals.py
-
 from django.core.management.base import BaseCommand
 from tribunals.models import Tribunal
 from tfms.models import TFM
@@ -14,11 +12,18 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         tfms = list(TFM.objects.all())
         slots = list(Slot.objects.filter(tribunals__isnull=True))
-        teachers = list(User.objects.filter(role="teacher", is_superuser=False))
+        teachers = list(User.objects.filter(role="teacher", is_superuser=False, is_staff=False))
 
         if not slots:
             self.stdout.write(self.style.WARNING("⚠️ No available slots for tribunal assignment"))
             return
+
+        if not teachers:
+            self.stdout.write(self.style.ERROR("❌ No teachers available for tribunal assignment"))
+            return
+
+        tribunals_to_create = []
+        judges_to_create = []
 
         for i, tfm in enumerate(tfms):
             if Tribunal.objects.filter(tfm=tfm).exists():
@@ -31,11 +36,17 @@ class Command(BaseCommand):
                 continue
 
             slot = available_slots[i % len(available_slots)]
-            tribunal = Tribunal.objects.create(tfm=tfm, slot=slot)
+            tribunal = Tribunal(tfm=tfm, slot=slot)
+            tribunals_to_create.append(tribunal)
 
+            # Assign judges
             judges = random.sample(teachers, k=3)
             roles = ["president", "secretary", "vocal"]
             for user, role in zip(judges, roles):
-                Judge.objects.create(tribunal=tribunal, user=user, role=role)
+                judges_to_create.append(Judge(tribunal=tribunal, user=user, role=role))
 
-            self.stdout.write(self.style.SUCCESS(f"✅ Created tribunal for TFM: {tfm.title}"))
+        # Bulk create tribunals and judges
+        Tribunal.objects.bulk_create(tribunals_to_create)
+        Judge.objects.bulk_create(judges_to_create)
+
+        self.stdout.write(self.style.SUCCESS(f"✅ Created {len(tribunals_to_create)} tribunals"))
