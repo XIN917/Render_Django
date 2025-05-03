@@ -20,7 +20,7 @@ class TribunalReadSerializer(serializers.ModelSerializer):
         fields = ['id', 'tfm', 'slot', 'judges', 'is_ready', 'is_full', 'start_time', 'end_time', 'index']
 
     def get_judges(self, obj):
-        judge_entries = obj.judge_entries.select_related("user")
+        judge_entries = obj.judges.select_related("user")
         return JudgeSerializer(judge_entries, many=True).data
 
     def get_is_ready(self, obj):

@@ -8,7 +8,7 @@ class Judge(models.Model):
         ('vocal', 'Vocal'),
     ]
 
-    tribunal = models.ForeignKey('tribunals.Tribunal', on_delete=models.CASCADE, related_name='judge_entries')
+    tribunal = models.ForeignKey('tribunals.Tribunal', on_delete=models.CASCADE, related_name='judges')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='judge_roles')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
 
