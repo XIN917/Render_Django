@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import TeacherApplication
 from users.serializers import UserSerializer
-from institutions.serializers import InstitutionSerializer  # Optional, or use PrimaryKeyRelatedField
+from institutions.serializers import InstitutionSerializer
 
 class TASerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -18,7 +18,8 @@ class TAUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TeacherApplication
-        fields = ['email', 'status']  # Admin only updates status
+        fields = ['email', 'status', 'attachment', 'institution']
+        read_only_fields = ['email']
 
     def update(self, instance, validated_data):
         new_status = validated_data.get('status')
@@ -26,4 +27,9 @@ class TAUpdateSerializer(serializers.ModelSerializer):
             instance.approve()
         elif new_status == TeacherApplication.REJECTED:
             instance.reject()
+
+        # Update other fields
+        instance.attachment = validated_data.get('attachment', instance.attachment)
+        instance.institution = validated_data.get('institution', instance.institution)
+        instance.save()
         return instance
