@@ -1,3 +1,5 @@
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions
 from .models import Tribunal
 from .serializers import TribunalSerializer, TribunalReadSerializer
@@ -6,8 +8,17 @@ from rest_framework.response import Response
 from judges.serializers import AssignJudgeRoleSerializer
 from judges.models import Judge
 
+class TribunalFilter(django_filters.FilterSet):
+    slot__track__semester = django_filters.NumberFilter(field_name="slot__track__semester")
+
+    class Meta:
+        model = Tribunal
+        fields = ["slot__track__semester"]
+
 class TribunalViewSet(viewsets.ModelViewSet):
     queryset = Tribunal.objects.all()
+    filter_backends = [DjangoFilterBackend]  # Enable filtering
+    filterset_class = TribunalFilter  # Enable ?slot__track__semester=X
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve', 'available', 'ready']:
