@@ -8,13 +8,24 @@ from .models import TFM, TFMReview
 from .serializers import TFMSerializer, TFMReadSerializer
 from users.permissions import IsStudent, IsTeacher, IsAdmin, IsAdminOrTeacher
 
+from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
+
 User = get_user_model()
 
+class TFMFilter(django_filters.FilterSet):
+    semester = django_filters.CharFilter(field_name="tribunal__slot__track__semester__id")
+
+    class Meta:
+        model = TFM
+        fields = ['semester']
 
 # 🧑‍🎓 Student uploads their own TFM
 class StudentUploadTFMView(generics.CreateAPIView):
     serializer_class = TFMSerializer
     permission_classes = [permissions.IsAuthenticated, IsStudent]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TFMFilter
 
 
 # 👨‍🏫 Admin or teacher creates a TFM (auto-approved)
@@ -27,15 +38,17 @@ class AdminOrTeacherCreateTFMView(generics.CreateAPIView):
 class AllTFMsAdminView(generics.ListAPIView):
     serializer_class = TFMReadSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
-
-    def get_queryset(self):
-        return TFM.objects.all()
+    queryset = TFM.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TFMFilter
 
 
 # 📃 Each user sees their associated TFMs
 class MyTFMsView(generics.ListAPIView):
     serializer_class = TFMReadSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TFMFilter
 
     def get_queryset(self):
         user = self.request.user

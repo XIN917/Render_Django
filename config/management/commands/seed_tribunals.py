@@ -4,6 +4,8 @@ from tfms.models import TFM
 from users.models import User
 from slots.models import Slot
 from judges.models import Judge
+from semesters.models import Semester  # Import Semester model
+from datetime import date
 import random
 
 class Command(BaseCommand):
@@ -11,10 +13,21 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         tfms = list(TFM.objects.all())
-        slots = list(Slot.objects.filter(tribunals__isnull=True))
         teachers = list(User.objects.filter(role="teacher", is_superuser=False, is_staff=False))
 
-        if not slots:
+        # Get the most recent past semester and the current semester
+        past_semester = Semester.objects.filter(end_date__lt=date.today()).order_by('-end_date').first()
+        current_semester = Semester.objects.filter(start_date__lte=date.today(), end_date__gte=date.today()).first()
+
+        if not past_semester or not current_semester:
+            self.stdout.write(self.style.ERROR("❌ Could not find past or current semester"))
+            return
+
+        # Filter slots by semester
+        past_slots = list(Slot.objects.filter(track__semester=past_semester, tribunals__isnull=True))
+        current_slots = list(Slot.objects.filter(track__semester=current_semester, tribunals__isnull=True))
+
+        if not past_slots and not current_slots:
             self.stdout.write(self.style.WARNING("⚠️ No available slots for tribunal assignment"))
             return
 
@@ -30,7 +43,9 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"⚠️ Tribunal already exists for TFM: {tfm.title}"))
                 continue
 
-            available_slots = [s for s in slots if not s.is_full()]
+            # Alternate between past and current slots
+            available_slots = past_slots if i % 2 == 0 else current_slots
+            available_slots = [s for s in available_slots if not s.is_full()]
             if not available_slots:
                 self.stdout.write(self.style.WARNING(f"ℹ️ No available slots to assign TFM '{tfm.title}'"))
                 continue
