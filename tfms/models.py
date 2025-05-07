@@ -13,7 +13,7 @@ class TFM(models.Model):
     file = models.FileField(upload_to='tfms/')
     attachment = models.FileField(upload_to='tfms/attachments/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='approved')
 
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,

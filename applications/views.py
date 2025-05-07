@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from .models import TeacherApplication
 from .serializers import TASerializer, TAUpdateSerializer
 from users.permissions import IsStudent, IsAdmin
+from institutions.models import Institution
 
 User = get_user_model()
 
@@ -34,28 +35,37 @@ class MyApplicationView(generics.RetrieveDestroyAPIView):
 
 
 # 🟢 Student submits a teacher application
+# 🟢 Student submits a teacher application
 class SubmitApplicationView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsStudent]
 
     def post(self, request):
         user = request.user
 
-        # Check if the student already has a pending application
+        # Check for existing pending application
         if TeacherApplication.objects.filter(user=user, status=TeacherApplication.PENDING).exists():
-            return Response({"error": "You already have a pending application"}, status=400)
+            return Response({"error": "You already have a pending application"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate certificate and additional info
-        certificate = request.FILES.get('certificate')
-        if not certificate or not certificate.name.lower().endswith('.pdf'):
-            return Response({"error": "A valid PDF certificate is required"}, status=400)
+        # Validate institution
+        institution_id = request.data.get('institution')
+        if not institution_id:
+            return Response({"error": "Institution is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        additional_info = request.data.get('additional_info', '')
+        try:
+            institution = Institution.objects.get(id=institution_id)
+        except Institution.DoesNotExist:
+            return Response({"error": "Invalid institution ID"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Validate attachment
+        attachment = request.FILES.get('attachment')
+        if attachment and not attachment.name.lower().endswith('.pdf'):
+            return Response({"error": "Only PDF attachments are allowed"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create the application
         application = TeacherApplication.objects.create(
             user=user,
-            certificate=certificate,
-            additional_info=additional_info
+            institution=institution,
+            attachment=attachment
         )
 
         return Response(TASerializer(application).data, status=status.HTTP_201_CREATED)
@@ -87,24 +97,30 @@ class ManageTApplicationView(generics.RetrieveUpdateAPIView):
 
         # Prevent re-approval or re-rejection
         if instance.status != TeacherApplication.PENDING:
-            return Response({"error": "This application has already been processed"}, status=400)
+            return Response({"error": "This application has already been processed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate and perform the update
+        # Validate institution if provided
+        institution_id = request.data.get('institution')
+        if institution_id:
+            try:
+                institution = Institution.objects.get(id=institution_id)
+                instance.institution = institution
+            except Institution.DoesNotExist:
+                return Response({"error": "Invalid institution ID"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Validate attachment if provided
+        attachment = request.FILES.get('attachment')
+        if attachment:
+            if not attachment.name.lower().endswith('.pdf'):
+                return Response({"error": "Only PDF attachments are allowed"}, status=status.HTTP_400_BAD_REQUEST)
+            instance.attachment = attachment
+
+        # Perform the update
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        return Response(serializer.data, status=200)
-
-    def delete(self, request, *args, **kwargs):
-        instance = self.get_object()
-
-        # Admins can delete any application
-        if request.user.is_staff or instance.status == TeacherApplication.PENDING:
-            instance.delete()
-            return Response({"detail": "Application deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-
-        raise ValidationError("You can only delete a pending application.")
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # 🔵 List teacher applications (students see pending, Admins see all)

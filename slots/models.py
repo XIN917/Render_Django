@@ -1,0 +1,24 @@
+from django.db import models
+from datetime import timedelta
+from tracks.models import Track
+from django.core.exceptions import ValidationError
+
+class Slot(models.Model):
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    tfm_duration = models.DurationField(default=timedelta(minutes=45))
+    max_tfms = models.PositiveIntegerField(default=2)
+    room = models.CharField(max_length=100)
+
+    track = models.ForeignKey('tracks.Track', on_delete=models.SET_NULL, null=True, blank=True, related_name='slots')
+
+    def is_full(self):
+        return self.tribunals.count() >= self.max_tfms
+
+    def __str__(self):
+        # Use presentation_day via the related semester from the track
+        presentation_day = self.track.semester.presentation_day if self.track and self.track.semester else 'No Date'
+        return f"{presentation_day} | {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')} in Room {self.room}"
+
+    def get_tfms(self):
+        return [tribunal.tfm for tribunal in self.tribunals.select_related('tfm') if tribunal.tfm]
