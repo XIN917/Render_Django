@@ -8,21 +8,21 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         semesters = [
             {
-                "name": "2023-2024 Fall",
-                "start_date": date(2023, 9, 1),
-                "end_date": date(2024, 1, 31),
-                "presentation_day": date(2024, 1, 22),
+                "name": "2024-2025 Fall",
+                "start_date": date(2024, 9, 16),
+                "end_date": date(2025, 1, 31),
+                "presentation_day": date(2025, 1, 22),
             },
             {
                 "name": "2024-2025 Spring",
-                "start_date": date(2025, 2, 1),
-                "end_date": date(2025, 6, 30),
-                "presentation_day": date(2025, 6, 16),
+                "start_date": date(2025, 2, 10),
+                "end_date": date(2025, 7, 10),
+                "presentation_day": date(2025, 6, 25),
             },
             {
                 "name": "2025-2026 Fall",
-                "start_date": date(2025, 9, 1),
-                "end_date": date(2026, 1, 31),
+                "start_date": date(2025, 9, 15),
+                "end_date": date(2026, 1, 30),
                 "presentation_day": date(2026, 1, 20),
             },
         ]
