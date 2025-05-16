@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'slots',
     'tracks',
     'tribunals',
-    'judges',
+    'committees',
     'semesters',
     'institutions',
 ]

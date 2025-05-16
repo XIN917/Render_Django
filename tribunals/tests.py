@@ -7,7 +7,7 @@ from users.models import User
 from tfms.models import TFM
 from slots.models import Slot
 from tribunals.models import Tribunal
-from judges.models import Judge
+from committees.models import Committee
 from tracks.models import Track
 from semesters.models import Semester
 
@@ -86,24 +86,24 @@ class TribunalModelTest(TestCase):
 
     def test_valid_tribunal_creation(self):
         tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
-        Judge.objects.create(tribunal=tribunal, user=self.president, role='president')
-        Judge.objects.create(tribunal=tribunal, user=self.secretary, role='secretary')
-        Judge.objects.create(tribunal=tribunal, user=self.vocal1, role='vocal')
-        Judge.objects.create(tribunal=tribunal, user=self.vocal2, role='vocal')
+        Committee.objects.create(tribunal=tribunal, user=self.president, role='president')
+        Committee.objects.create(tribunal=tribunal, user=self.secretary, role='secretary')
+        Committee.objects.create(tribunal=tribunal, user=self.vocal1, role='vocal')
+        Committee.objects.create(tribunal=tribunal, user=self.vocal2, role='vocal')
 
-        self.assertEqual(tribunal.judges.count(), 4)
+        self.assertEqual(tribunal.committees.count(), 4)
 
     def test_conflicting_roles(self):
         tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
-        Judge.objects.create(tribunal=tribunal, user=self.president, role='president')
+        Committee.objects.create(tribunal=tribunal, user=self.president, role='president')
         with self.assertRaises(ValidationError):
-            duplicate = Judge(tribunal=tribunal, user=self.president, role='vocal')
+            duplicate = Committee(tribunal=tribunal, user=self.president, role='vocal')
             duplicate.full_clean()
 
     def test_missing_vocal(self):
         tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
-        Judge.objects.create(tribunal=tribunal, user=self.president, role='president')
-        Judge.objects.create(tribunal=tribunal, user=self.secretary, role='secretary')
+        Committee.objects.create(tribunal=tribunal, user=self.president, role='president')
+        Committee.objects.create(tribunal=tribunal, user=self.secretary, role='secretary')
 
-        vocals = Judge.objects.filter(tribunal=tribunal, role='vocal')
+        vocals = Committee.objects.filter(tribunal=tribunal, role='vocal')
         self.assertEqual(vocals.count(), 0)

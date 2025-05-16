@@ -3,8 +3,8 @@ from .models import Tribunal
 from .serializers import TribunalSerializer, TribunalReadSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from judges.serializers import AssignJudgeRoleSerializer
-from judges.models import Judge
+from committees.serializers import AssignCommitteeRoleSerializer
+from committees.models import Committee
 
 from django_filters import rest_framework as filters
 
@@ -43,7 +43,7 @@ class TribunalViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def ready(self, request):
         """
-        Returns tribunals that are ready (>=3 judges).
+        Returns tribunals that are ready (>=3 committees).
         """
         tribunals = Tribunal.objects.all()
         ready = [tribunal for tribunal in tribunals if tribunal.is_ready()]
@@ -59,7 +59,7 @@ class TribunalViewSet(viewsets.ModelViewSet):
         if role not in ['president', 'secretary', 'vocal']:
             return Response({"detail": "Invalid role."}, status=400)
 
-        serializer = AssignJudgeRoleSerializer(data={
+        serializer = AssignCommitteRoleSerializer(data={
             "tribunal": tribunal.id,
             "user": user.id,
             "role": role

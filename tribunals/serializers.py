@@ -2,14 +2,13 @@ from rest_framework import serializers
 from .models import Tribunal
 from tfms.serializers import TFMReadSerializer
 from slots.serializers import SlotSerializer
-from judges.models import Judge
-from judges.serializers import JudgeSerializer
+from committees.serializers import CommitteeSerializer
 from datetime import datetime, date
 
 class TribunalReadSerializer(serializers.ModelSerializer):
     tfm = TFMReadSerializer()
     slot = SlotSerializer()
-    judges = serializers.SerializerMethodField()
+    committees = serializers.SerializerMethodField()
     is_ready = serializers.SerializerMethodField()
     is_full = serializers.SerializerMethodField()
     start_time = serializers.SerializerMethodField()
@@ -17,11 +16,11 @@ class TribunalReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tribunal
-        fields = ['id', 'tfm', 'slot', 'judges', 'is_ready', 'is_full', 'start_time', 'end_time', 'index']
+        fields = ['id', 'tfm', 'slot', 'committees', 'is_ready', 'is_full', 'start_time', 'end_time', 'index']
 
-    def get_judges(self, obj):
-        judge_entries = obj.judges.select_related("user")
-        return JudgeSerializer(judge_entries, many=True).data
+    def get_committees(self, obj):
+        committee_entries = obj.committees.select_related("user")
+        return CommitteeSerializer(committee_entries, many=True).data
 
     def get_is_ready(self, obj):
         return obj.is_ready()
