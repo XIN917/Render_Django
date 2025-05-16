@@ -20,6 +20,7 @@ class TFMFilter(django_filters.FilterSet):
         model = TFM
         fields = ['semester']
 
+
 # 🧑‍🎓 Student uploads their own TFM
 class StudentUploadTFMView(generics.CreateAPIView):
     serializer_class = TFMSerializer
@@ -53,7 +54,7 @@ class MyTFMsView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         if user.role == User.STUDENT:
-            return TFM.objects.filter(student=user)
+            return TFM.objects.filter(author=user)
         elif user.role == User.TEACHER:
             return TFM.objects.filter(directors=user).distinct()
         elif user.is_staff or user.is_superuser:
@@ -77,7 +78,7 @@ class TFMDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
 
         if user.is_staff or user.is_superuser:
             return tfm
-        if user.role == User.STUDENT and tfm.student == user:
+        if user.role == User.STUDENT and tfm.author == user:
             return tfm
         if user.role == User.TEACHER and tfm.directors.filter(id=user.id).exists():
             return tfm

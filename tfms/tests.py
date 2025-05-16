@@ -35,10 +35,10 @@ class TFMTestCase(APITestCase):
             title="Initial TFM",
             description="Test description",
             file=SimpleUploadedFile("test.pdf", b"Initial content", content_type="application/pdf"),
-            student=self.student,
+            author=self.student,
             status="pending"
         )
-        self.tfm.directors.add(self.teacher)  # ✅ Assign teacher directly as director
+        self.tfm.directors.add(self.teacher)  # ✅ Assign teacher as director
 
     def test_student_upload(self):
         self.client.force_authenticate(user=self.student)
@@ -50,7 +50,7 @@ class TFMTestCase(APITestCase):
                 "title": "TFM Test Student",
                 "description": "TFM uploaded by student",
                 "file": pdf_file,
-                "directors": [self.teacher.id],  # ✅ teacher ID as director
+                "directors": [self.teacher.id],
             }
             response = self.client.post("/tfms/upload/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -65,7 +65,7 @@ class TFMTestCase(APITestCase):
                 "title": "TFM Test Teacher",
                 "description": "TFM created by teacher",
                 "file": pdf_file,
-                "student": self.student.id,
+                "author": self.student.id,
             }
             response = self.client.post("/tfms/create/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -102,7 +102,7 @@ class TFMTestCase(APITestCase):
                 "title": "Valid Admin TFM",
                 "description": "All required fields",
                 "file": pdf_file,
-                "student": self.student.id,
+                "author": self.student.id,
                 "directors": [self.teacher.id],
             }
             response = self.client.post("/tfms/create/", data, format="multipart")

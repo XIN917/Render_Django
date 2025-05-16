@@ -5,6 +5,7 @@ from users.serializers import UserSerializer
 
 User = get_user_model()
 
+
 class TFMReviewSerializer(serializers.ModelSerializer):
     reviewed_by = serializers.StringRelatedField(read_only=True)
 
@@ -14,7 +15,7 @@ class TFMReviewSerializer(serializers.ModelSerializer):
 
 
 class TFMSerializer(serializers.ModelSerializer):
-    student = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    author = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
     directors = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role='teacher'), many=True, required=False)
     review = TFMReviewSerializer(read_only=True)
 
@@ -22,7 +23,7 @@ class TFMSerializer(serializers.ModelSerializer):
         model = TFM
         fields = [
             'id', 'title', 'description', 'file', 'attachment',
-            'created_at', 'status', 'student', 'directors', 'review',
+            'created_at', 'status', 'author', 'directors', 'review',
         ]
         read_only_fields = ['status', 'created_at', 'review']
 
@@ -33,15 +34,15 @@ class TFMSerializer(serializers.ModelSerializer):
         # Safely determine title
         title = attrs.get("title") or (self.instance.title if self.instance else None)
 
-        # Determine student
-        if "student" in attrs:
-            student = attrs["student"]
+        # Determine author
+        if "author" in attrs:
+            author = attrs["author"]
         elif self.instance:
-            student = self.instance.student
+            author = self.instance.author
         elif user.role == User.STUDENT:
-            student = user
+            author = user
         else:
-            student = None
+            author = None
 
         # Determine directors
         if "directors" in attrs:
@@ -51,26 +52,25 @@ class TFMSerializer(serializers.ModelSerializer):
         else:
             directors = []
 
-        # Validate student presence
-        if not student:
-            raise serializers.ValidationError({"student": "A student must be assigned."})
+        # Validate author presence
+        if not author:
+            raise serializers.ValidationError({"author": "An author (student) must be assigned."})
 
         # Validate director rules
         if not directors and not (user.role == User.TEACHER and not user.is_superuser):
             raise serializers.ValidationError({"directors": "At least one director must be assigned."})
 
         # 🛡️ Prevent duplicate
-        existing_tfms = TFM.objects.filter(title=title, student=student).exclude(pk=getattr(self.instance, "pk", None))
+        existing_tfms = TFM.objects.filter(title=title, author=author).exclude(pk=getattr(self.instance, "pk", None))
         for tfm in existing_tfms:
             existing_directors = set(tfm.directors.values_list("id", flat=True))
             incoming_directors = set(d.id for d in directors)
             if existing_directors == incoming_directors:
                 raise serializers.ValidationError({
-                    "non_field_errors": ["This TFM with same title, student, and directors already exists."]
+                    "non_field_errors": ["This TFM with same title, author, and directors already exists."]
                 })
 
         return attrs
-
 
     def validate_directors(self, value):
         if len(value) > 2:
@@ -81,11 +81,11 @@ class TFMSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         provided_directors = validated_data.pop("directors", [])
 
-         # ✅ Make sure student is assigned if given
-        student = validated_data.get("student")
-        # Auto assign student if not admin
-        if not student and user.role == User.STUDENT:
-            validated_data["student"] = user
+        # ✅ Make sure author is assigned if given
+        author = validated_data.get("author")
+        # Auto assign author if not admin
+        if not author and user.role == User.STUDENT:
+            validated_data["author"] = user
 
         # Auto assign director if teacher and no explicit directors
         if not provided_directors and user.role == User.TEACHER and not user.is_superuser:
@@ -104,7 +104,7 @@ class TFMSerializer(serializers.ModelSerializer):
 
 
 class TFMReadSerializer(serializers.ModelSerializer):
-    student = UserSerializer()
+    author = UserSerializer()
     directors = UserSerializer(many=True)
     review = TFMReviewSerializer(read_only=True)
 
@@ -112,5 +112,5 @@ class TFMReadSerializer(serializers.ModelSerializer):
         model = TFM
         fields = [
             'id', 'title', 'description', 'file', 'attachment',
-            'created_at', 'status', 'student', 'directors', 'review',
+            'created_at', 'status', 'author', 'directors', 'review',
         ]

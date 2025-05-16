@@ -15,7 +15,7 @@ class TFM(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='approved')
 
-    student = models.ForeignKey(
+    author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name='submitted_tfms',
         on_delete=models.CASCADE
