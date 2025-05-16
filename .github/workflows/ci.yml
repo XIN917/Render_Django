@@ -27,8 +27,8 @@ jobs:
       AWS_ACCESS_KEY_ID: minio
       AWS_SECRET_ACCESS_KEY: minio123
       AWS_STORAGE_BUCKET_NAME: media
-      AWS_S3_ENDPOINT_URL: http://minio:9000
-      MINIO_ACCESS_URL: http://minio:9000
+      AWS_S3_ENDPOINT_URL: http://localhost:9000
+      MINIO_ACCESS_URL: http://localhost:9000
 
     steps:
       - name: 📥 Checkout code
@@ -45,16 +45,27 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
 
-      - name: Install Docker Compose
+      - name: 🧱 Install Docker Compose
         run: |
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose version
 
-      - name: 🧱 Start Docker services (MinIO)
+      - name: ▶️ Start Docker services (MinIO)
         run: |
           docker-compose up -d
-          sleep 10  # wait for MinIO and postgres to be fully up
+          sleep 10  # allow services to initialize
+
+      - name: ⏳ Wait for MinIO to be ready
+        run: |
+          for i in {1..10}; do
+            if curl -s http://localhost:9000/minio/health/live; then
+              echo "MinIO is up"
+              break
+            fi
+            echo "Waiting for MinIO..."
+            sleep 5
+          done
 
       - name: 🧪 Run migrations
         run: |
