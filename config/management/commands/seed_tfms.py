@@ -11,6 +11,10 @@ import random
 class Command(BaseCommand):
     help = "Seed TFMs with sample data"
 
+    def init(self):
+        TFM.objects.all().delete()
+        self.stdout.write(self.style.WARNING("🗑️ Deleted all existing TFMs."))
+
     def handle(self, *args, **kwargs):
         students = list(User.objects.filter(role="student"))
         teachers = list(User.objects.filter(role="teacher", is_superuser=False, is_staff=False))
@@ -57,8 +61,10 @@ class Command(BaseCommand):
                 title=title,
                 description=f"Description for {title}",
                 student=student,
-                file=pdf_file,
             )
+            # ✅ This ensures the file gets uploaded using S3/MinIO storage
+            tfm.file.save(f"{title.replace(' ', '_')}.pdf", pdf_file, save=True)
+
             tfm.directors.set(directors)
             tfm.save()
 

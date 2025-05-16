@@ -12,7 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
-import os
+from decouple import config
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # SECRET_KEY = 'django-insecure-m&b1ssb^9^b8t(lbkusran3&#azlfz^yp@tg^zbsp#8n%0fgqo'
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-key")
+SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=True, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -43,13 +44,17 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'django_filters',
+    'rest_framework_simplejwt.token_blacklist',
+    'django_extensions',
+    'storages',
+
+    # Local apps
     'users',
     'authentication',
     'applications',
     'profiles',
     'tfms',
-    'django_filters',
-    'rest_framework_simplejwt.token_blacklist',
     'slots',
     'tracks',
     'tribunals',
@@ -137,6 +142,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -158,13 +164,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
-# CORS_ALLOW_ALL_ORIGINS = True # Allow all origins
-# CORS_ALLOW_CREDENTIALS = True # Allow credentials
-
-CORS_ALLOWED_ORIGINS = [ # Allow specific origins
-    'http://localhost:3000'
-]
-
+# SIMPLE_JWT
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=12),  # Extend access token to 12 hours
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Extend refresh token to 7 days
@@ -173,7 +173,35 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+# CORS_ALLOW_ALL_ORIGINS = True # Allow all origins
+# CORS_ALLOW_CREDENTIALS = True # Allow credentials
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CORS_ALLOWED_ORIGINS = [ # Allow specific origins
+    'http://localhost:3000'
+]
+
+STORAGES = {
+    "default": {
+        "BACKEND": "tfms.storage.S3MediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "tfms.storage.StaticS3Boto3Storage",
+    }
+}
+
+# AWS / MinIO Settings
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL")
+MINIO_ACCESS_URL = config("MINIO_ACCESS_URL")
+
+STATICFILES_LOCATION = 'static'
+STATICFILES_STORAGE = 'tfms.storage.StaticS3Boto3Storage'
+
+DEFAULT_FILE_STORAGE = 'tfms.storage.S3MediaStorage'
+
+# Optional if needed:
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = False
