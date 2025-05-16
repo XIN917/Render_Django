@@ -3,13 +3,13 @@ from tribunals.models import Tribunal
 from tfms.models import TFM
 from users.models import User
 from slots.models import Slot
-from judges.models import Judge
+from committees.models import Committee
 from semesters.models import Semester  # Import Semester model
 from datetime import date
 import random
 
 class Command(BaseCommand):
-    help = "Seed tribunals and assign judges"
+    help = "Seed tribunals and assign committees"
 
     def handle(self, *args, **kwargs):
         tfms = list(TFM.objects.all())
@@ -36,7 +36,7 @@ class Command(BaseCommand):
             return
 
         tribunals_to_create = []
-        judges_to_create = []
+        committees_to_create = []
 
         for i, tfm in enumerate(tfms):
             if Tribunal.objects.filter(tfm=tfm).exists():
@@ -54,14 +54,14 @@ class Command(BaseCommand):
             tribunal = Tribunal(tfm=tfm, slot=slot)
             tribunals_to_create.append(tribunal)
 
-            # Assign judges
-            judges = random.sample(teachers, k=3)
+            # Assign committees
+            committees = random.sample(teachers, k=3)
             roles = ["president", "secretary", "vocal"]
-            for user, role in zip(judges, roles):
-                judges_to_create.append(Judge(tribunal=tribunal, user=user, role=role))
+            for user, role in zip(committees, roles):
+                committees_to_create.append(Committee(tribunal=tribunal, user=user, role=role))
 
-        # Bulk create tribunals and judges
+        # Bulk create tribunals and committees
         Tribunal.objects.bulk_create(tribunals_to_create)
-        Judge.objects.bulk_create(judges_to_create)
+        Committee.objects.bulk_create(committees_to_create)
 
         self.stdout.write(self.style.SUCCESS(f"✅ Created {len(tribunals_to_create)} tribunals"))

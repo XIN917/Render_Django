@@ -1,23 +1,23 @@
 from rest_framework import serializers
-from .models import Judge
+from .models import Committee
 from users.serializers import UserSerializer
 
-class JudgeSerializer(serializers.ModelSerializer):
+class CommitteeSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 
     class Meta:
-        model = Judge
+        model = Committee
         fields = '__all__'
 
 
-class AssignJudgeRoleSerializer(serializers.ModelSerializer):
+class AssignCommitteeRoleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Judge
+        model = Committee
         fields = '__all__'
     
     def validate_user(self, value):
         if value.role != 'teacher':
-            raise serializers.ValidationError("Only users with the role 'teacher' can be assigned as judges.")
+            raise serializers.ValidationError("Only users with the role 'teacher' can be assigned as Committees.")
         return value
 
     def validate(self, data):
@@ -26,15 +26,15 @@ class AssignJudgeRoleSerializer(serializers.ModelSerializer):
         user = data['user']
 
         # When updating, exclude the current instance from validation checks
-        existing_judge_qs = Judge.objects.filter(tribunal=tribunal, user=user)
+        existing_Committee_qs = Committee.objects.filter(tribunal=tribunal, user=user)
         if self.instance:
-            existing_judge_qs = existing_judge_qs.exclude(pk=self.instance.pk)
+            existing_Committee_qs = existing_Committee_qs.exclude(pk=self.instance.pk)
 
-        if existing_judge_qs.exists():
+        if existing_Committee_qs.exists():
             raise serializers.ValidationError("This user is already assigned to this tribunal.")
 
         if role in ['president', 'secretary']:
-            role_taken_qs = Judge.objects.filter(tribunal=tribunal, role=role)
+            role_taken_qs = Committee.objects.filter(tribunal=tribunal, role=role)
             if self.instance:
                 role_taken_qs = role_taken_qs.exclude(pk=self.instance.pk)
 

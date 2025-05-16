@@ -2,10 +2,10 @@ from django.db import models
 from tfms.models import TFM
 from slots.models import Slot
 from users.models import User
-from judges.models import Judge
+from committees.models import Committee
 
 class Tribunal(models.Model):
-    tfm = models.OneToOneField(TFM, on_delete=models.CASCADE, unique=True)  
+    tfm = models.OneToOneField(TFM, on_delete=models.CASCADE, unique=True)
     # Reverse relationship: You can access the Tribunal from a TFM instance using `tfm.tribunal`
     slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='tribunals')
     index = models.IntegerField(default=1)
@@ -32,17 +32,17 @@ class Tribunal(models.Model):
 
         super().save(*args, **kwargs)
 
-    def add_judge(self, user: User, role: str):
-        """Helper method to add a judge with a role."""
-        return Judge.objects.create(tribunal=self, user=user, role=role)
-    
+    def add_committee(self, user: User, role: str):
+        """Helper method to add a committee with a role."""
+        return Committee.objects.create(tribunal=self, user=user, role=role)
+
     def get_semester(self):
         return self.slot.track.semester
 
     def is_ready(self):
-        """Check if the tribunal is ready (has enough judges)."""
-        return self.judges.count() >= self.get_semester().min_judges
+        """Check if the tribunal is ready (has enough committees)."""
+        return self.committees.count() >= self.get_semester().min_committees
 
     def is_full(self):
         """Check if the tribunal is full."""
-        return self.judges.count() >= self.get_semester().max_judges
+        return self.committees.count() >= self.get_semester().max_committees
