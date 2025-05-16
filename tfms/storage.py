@@ -1,11 +1,8 @@
-# tfms/storage.py
 from storages.backends.s3boto3 import S3Boto3Storage
 from django.conf import settings
 
-
 class StaticS3Boto3Storage(S3Boto3Storage):
     location = getattr(settings, "STATICFILES_LOCATION", "")
-    default_acl = 'public-read'
 
     def __init__(self, *args, **kwargs):
         minio_url = getattr(settings, "MINIO_ACCESS_URL", None)
@@ -16,8 +13,6 @@ class StaticS3Boto3Storage(S3Boto3Storage):
 
 
 class S3MediaStorage(S3Boto3Storage):
-    default_acl = 'public-read'
-
     def __init__(self, *args, **kwargs):
         minio_url = getattr(settings, "MINIO_ACCESS_URL", None)
         if minio_url:

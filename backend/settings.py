@@ -205,3 +205,6 @@ DEFAULT_FILE_STORAGE = 'tfms.storage.S3MediaStorage'
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = False
+
+# Avoid ACL errors in uploads
+AWS_DEFAULT_ACL = None
