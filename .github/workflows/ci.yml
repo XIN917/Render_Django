@@ -1,0 +1,61 @@
+name: CI - Django Tests with MinIO
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+
+    env:
+      DEBUG: true
+      SECRET_KEY: django-insecure-J8VliX3EyI4hak5LuS6YW9bojYdIkKT1UvVHt3sQ-FkvyUJHTtw_9S7EHXlW3nAtAvw
+      DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
+      AWS_ACCESS_KEY_ID: minio
+      AWS_SECRET_ACCESS_KEY: minio123
+      AWS_STORAGE_BUCKET_NAME: media
+      AWS_S3_ENDPOINT_URL: http://minio:9000
+      MINIO_ACCESS_URL: http://minio:9000
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 🧪 Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: 🧱 Start Docker services (MinIO)
+        run: |
+          docker-compose up -d
+          sleep 10  # wait for MinIO and postgres to be fully up
+
+      - name: 🧪 Run migrations
+        run: |
+          source venv/bin/activate
+          python manage.py migrate
+
+      - name: ✅ Run tests
+        run: |
+          source venv/bin/activate
+          python manage.py test
