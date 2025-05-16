@@ -91,7 +91,7 @@ class TribunalModelTest(TestCase):
         Judge.objects.create(tribunal=tribunal, user=self.vocal1, role='vocal')
         Judge.objects.create(tribunal=tribunal, user=self.vocal2, role='vocal')
 
-        self.assertEqual(tribunal.judge_entries.count(), 4)
+        self.assertEqual(tribunal.judges.count(), 4)
 
     def test_conflicting_roles(self):
         tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)

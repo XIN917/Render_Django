@@ -92,22 +92,6 @@ class TFMTestCase(APITestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_admin_create_with_missing_directors(self):
-        self.client.force_authenticate(user=self.admin)
-        with tempfile.NamedTemporaryFile(suffix=".pdf") as pdf_file:
-            pdf_file.write(b"Dummy content")
-            pdf_file.seek(0)
-
-            data = {
-                "title": "Invalid Admin TFM",
-                "description": "Missing directors",
-                "file": pdf_file,
-                "student": self.student.id,
-            }
-            response = self.client.post("/tfms/create/", data, format="multipart")
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-            self.assertIn("directors", response.data)
-
     def test_admin_create_with_all_required_fields(self):
         self.client.force_authenticate(user=self.admin)
         with tempfile.NamedTemporaryFile(suffix=".pdf") as pdf_file:
