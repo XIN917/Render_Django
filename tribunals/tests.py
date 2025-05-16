@@ -71,7 +71,7 @@ class TribunalModelTest(TestCase):
             description='Test description',
             file=mock_file,
             status='pending',
-            student=self.student,
+            author=self.student,
         )
         self.tfm.directors.set([self.director])
 
