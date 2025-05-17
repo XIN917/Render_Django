@@ -8,6 +8,7 @@ pip install -r requirements.txt
 python manage.py collectstatic --no-input
 
 # Run migrations
+python manage.py makemigrations --no-input
 python manage.py migrate --no-input
 
 # Seed data
