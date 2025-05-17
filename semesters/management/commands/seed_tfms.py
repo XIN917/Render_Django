@@ -61,7 +61,7 @@ class Command(BaseCommand):
             tfm = TFM.objects.create(
                 title=title,
                 description=f"Description for {title}",
-                student=student,
+                author=student,
             )
             # ✅ This ensures the file gets uploaded using S3/MinIO storage
             tfm.file.save(f"{title.replace(' ', '_')}.pdf", pdf_file, save=True)
