@@ -13,8 +13,9 @@ def recalculate_slot_end_time(slot):
         if max_index is None:
             slot.end_time = slot.start_time
         else:
-            # Each index represents one TFM slot, starting at 0
-            total_duration = (max_index + 1) * slot.tfm_duration
+            # Use standardized duration from Semester
+            duration = slot.track.semester.pre_duration
+            total_duration = (max_index) * duration
             slot.end_time = (
                 datetime.combine(date.today(), slot.start_time) + total_duration
             ).time()

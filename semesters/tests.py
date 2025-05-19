@@ -13,7 +13,8 @@ class SemesterTests(TestCase):
             name="Spring 2025",
             start_date="2025-01-10",
             end_date="2025-05-10",
-            presentation_day="2025-05-20",
+            int_presentation_date="2025-05-20",
+            last_presentation_date="2025-05-23",
             min_judges=3,
             max_judges=5
         )
@@ -52,7 +53,8 @@ class SemesterTests(TestCase):
             "name": "Fall 2025",
             "start_date": "2025-08-01",
             "end_date": "2025-12-10",
-            "presentation_day": "2025-12-20",
+            "int_presentation_date": "2025-12-20",
+            "last_presentation_date": "2025-12-23",
             "min_judges": 3,
             "max_judges": 5
         })
@@ -64,7 +66,8 @@ class SemesterTests(TestCase):
             "name": "Fall 2025",
             "start_date": "2025-08-01",
             "end_date": "2025-12-10",
-            "presentation_day": "2025-12-20",
+            "int_presentation_date": "2025-12-20",
+            "last_presentation_date": "2025-12-23",
             "min_judges": 3,
             "max_judges": 5
         })

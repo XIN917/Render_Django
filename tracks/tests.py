@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from datetime import date
+from datetime import date, time, timedelta
 from semesters.models import Semester
 from tracks.models import Track
 
@@ -17,7 +17,13 @@ class TrackAPITestCase(TestCase):
             name="2024-2025 Spring",
             start_date=date(2025, 2, 10),
             end_date=date(2025, 7, 10),
-            presentation_day=date(2025, 6, 25),
+            int_presentation_date=date(2025, 6, 25),
+            last_presentation_date=date(2025, 6, 28),
+            daily_start_time=time(9, 0),
+            daily_end_time=time(17, 0),
+            pre_duration=timedelta(minutes=45),
+            min_judges=3,
+            max_judges=5
         )
 
         # Users
