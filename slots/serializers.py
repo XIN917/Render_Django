@@ -85,7 +85,7 @@ class SlotReadSerializer(serializers.ModelSerializer):
     is_full = serializers.SerializerMethodField()
     start_time = serializers.TimeField(format='%H:%M')
     end_time = serializers.TimeField(format='%H:%M')
-    tfm_duration = serializers.SerializerMethodField()
+    pre_duration = serializers.SerializerMethodField()
     track_title = serializers.CharField(source="track.title", read_only=True)
 
     class Meta:
@@ -98,7 +98,7 @@ class SlotReadSerializer(serializers.ModelSerializer):
     def get_is_full(self, obj):
         return obj.is_full()
 
-    def get_tfm_duration(self, obj):
+    def get_pre_duration(self, obj):
         duration = obj.track.semester.pre_duration
         total_seconds = int(duration.total_seconds())
         hours, remainder = divmod(total_seconds, 3600)
