@@ -3,13 +3,35 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
-from tfms.models import TFM, TFMReview
-from tfms.storage import StaticS3Boto3Storage, S3MediaStorage
+from django.conf import settings
 import tempfile
+import shutil
+import os
+
+from tfms.models import TFM, TFMReview
+from backend.storage import StaticS3Boto3Storage, S3MediaStorage
 
 User = get_user_model()
 
 class TFMTestCase(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._temp_media = tempfile.mkdtemp()
+        cls._original_media_root = settings.MEDIA_ROOT
+        settings.MEDIA_ROOT = cls._temp_media
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._temp_media)
+        settings.MEDIA_ROOT = cls._original_media_root
+        super().tearDownClass()
+
+    def tearDown(self):
+        for tfm in TFM.objects.all():
+            if tfm.file:
+                tfm.file.delete(save=False)
+
     def setUp(self):
         self.admin = User.objects.create_user(
             email="admin@test.com", full_name="Admin User", password="adminpass",
@@ -25,9 +47,11 @@ class TFMTestCase(APITestCase):
         )
 
         self.tfm = TFM.objects.create(
-            title="Initial TFM", description="Test description",
+            title="Initial TFM",
+            description="Test description",
             file=SimpleUploadedFile("test.pdf", b"Initial content", content_type="application/pdf"),
-            author=self.student, status="pending"
+            author=self.student,
+            status="pending"
         )
         self.tfm.directors.add(self.teacher)
 
@@ -37,8 +61,10 @@ class TFMTestCase(APITestCase):
             pdf_file.write(b"Dummy content")
             pdf_file.seek(0)
             data = {
-                "title": "TFM Test Student", "description": "TFM uploaded by student",
-                "file": pdf_file, "directors": [self.teacher.id],
+                "title": "TFM Test Student",
+                "description": "TFM uploaded by student",
+                "file": pdf_file,
+                "directors": [self.teacher.id],
             }
             response = self.client.post("/tfms/upload/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -49,8 +75,10 @@ class TFMTestCase(APITestCase):
             pdf_file.write(b"Dummy content")
             pdf_file.seek(0)
             data = {
-                "title": "TFM Test Teacher", "description": "TFM created by teacher",
-                "file": pdf_file, "author": self.student.id,
+                "title": "TFM Test Teacher",
+                "description": "TFM created by teacher",
+                "file": pdf_file,
+                "author": self.student.id,
             }
             response = self.client.post("/tfms/create/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -81,8 +109,11 @@ class TFMTestCase(APITestCase):
             pdf_file.write(b"Dummy content")
             pdf_file.seek(0)
             data = {
-                "title": "Valid Admin TFM", "description": "All required fields",
-                "file": pdf_file, "author": self.student.id, "directors": [self.teacher.id],
+                "title": "Valid Admin TFM",
+                "description": "All required fields",
+                "file": pdf_file,
+                "author": self.student.id,
+                "directors": [self.teacher.id],
             }
             response = self.client.post("/tfms/create/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -108,8 +139,10 @@ class TFMTestCase(APITestCase):
             pdf_file.write(b"Content")
             pdf_file.seek(0)
             data = {
-                "title": "Too many directors", "description": "Invalid",
-                "file": pdf_file, "author": self.student.id,
+                "title": "Too many directors",
+                "description": "Invalid",
+                "file": pdf_file,
+                "author": self.student.id,
                 "directors": [self.teacher.id, extra_teacher.id, self.admin.id],
             }
             response = self.client.post("/tfms/create/", data, format="multipart")

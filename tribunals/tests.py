@@ -3,6 +3,9 @@ from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from datetime import time, timedelta, date, datetime
+import tempfile
+import shutil
+from django.conf import settings
 
 from users.models import User
 from tfms.models import TFM
@@ -15,6 +18,25 @@ from tribunals.serializers import TribunalSerializer, TribunalReadSerializer
 from tribunals.views import TribunalViewSet
 
 class TribunalTests(APITestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._temp_media = tempfile.mkdtemp()
+        cls._original_media_root = settings.MEDIA_ROOT
+        settings.MEDIA_ROOT = cls._temp_media
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._temp_media)
+        settings.MEDIA_ROOT = cls._original_media_root
+        super().tearDownClass()
+    
+    def tearDown(self):
+        for tfm in TFM.objects.all():
+            if tfm.file:
+                tfm.file.delete(save=False)
+        
     def setUp(self):
         self.admin = User.objects.create_user(
             email='admin@example.com', full_name='Admin', password='adminpass',
