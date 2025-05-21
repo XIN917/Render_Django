@@ -30,12 +30,14 @@ class TribunalReadSerializer(serializers.ModelSerializer):
 
     def get_start_time(self, obj):
         base_time = datetime.combine(date.today(), obj.slot.start_time)
-        tribunal_start = base_time + ((obj.index - 1) * obj.slot.tfm_duration)
+        duration = obj.slot.track.semester.pre_duration
+        tribunal_start = base_time + ((obj.index - 1) * duration)
         return tribunal_start.strftime("%H:%M")
 
     def get_end_time(self, obj):
         base_time = datetime.combine(date.today(), obj.slot.start_time)
-        tribunal_end = base_time + (obj.index * obj.slot.tfm_duration)
+        duration = obj.slot.track.semester.pre_duration
+        tribunal_end = base_time + (obj.index * duration)
         return tribunal_end.strftime("%H:%M")
 
 
@@ -105,7 +107,7 @@ class TribunalSerializer(serializers.ModelSerializer):
         if tfm_count == 0:
             slot.end_time = slot.start_time
         else:
-            total_duration = tfm_count * slot.tfm_duration
+            total_duration = tfm_count * slot.track.semester.pre_duration
             slot.end_time = (
                 datetime.combine(date.today(), slot.start_time) + total_duration
             ).time()

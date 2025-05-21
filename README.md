@@ -150,16 +150,16 @@ INSTALLED_APPS = [
 To create a **portrait-oriented** diagram that fits A4 pages:
 
 ```sh
-python manage.py graph_models users applications profiles tfms slots tracks tribunals judges semesters institutions --layout=dot --rankdir=TB -o clean_diagram.pdf
+python manage.py graph_models users applications profiles tfms slots tracks tribunals committees semesters institutions --layout=dot --rankdir=TB -o diagram.pdf
 ```
 
 You can change the output format by changing the file extension:
 
 | Format | Output Command         |
 | ------ | ---------------------- |
-| PDF    | `-o clean_diagram.pdf` |
-| SVG    | `-o clean_diagram.svg` |
-| PNG    | `-o clean_diagram.png` |
+| PDF    | `-o diagram.pdf` |
+| SVG    | `-o diagram.svg` |
+| PNG    | `-o diagram.png` |
 
 > **Note**: PNG may lose quality on large diagrams; use SVG or PDF for print or embedding in documents.
 

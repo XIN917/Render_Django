@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG", default=True, cast=bool)
+DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -181,10 +181,10 @@ CORS_ALLOWED_ORIGINS = [ # Allow specific origins
 
 STORAGES = {
     "default": {
-        "BACKEND": "tfms.storage.S3MediaStorage",
+        "BACKEND": "backend.storage.S3MediaStorage",
     },
     "staticfiles": {
-        "BACKEND": "tfms.storage.StaticS3Boto3Storage",
+        "BACKEND": "backend.storage.StaticS3Boto3Storage",
     }
 }
 
@@ -196,9 +196,8 @@ AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL")
 MINIO_ACCESS_URL = config("MINIO_ACCESS_URL", default=None)
 
 STATICFILES_LOCATION = 'static'
-STATICFILES_STORAGE = 'tfms.storage.StaticS3Boto3Storage'
-
-DEFAULT_FILE_STORAGE = 'tfms.storage.S3MediaStorage'
+STATICFILES_STORAGE = 'backend.storage.StaticS3Boto3Storage'
+DEFAULT_FILE_STORAGE = 'backend.storage.S3MediaStorage'
 
 # Optional if needed:
 AWS_S3_FILE_OVERWRITE = False

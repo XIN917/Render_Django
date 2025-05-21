@@ -59,7 +59,7 @@ class TribunalViewSet(viewsets.ModelViewSet):
         if role not in ['president', 'secretary', 'vocal']:
             return Response({"detail": "Invalid role."}, status=400)
 
-        serializer = AssignCommitteRoleSerializer(data={
+        serializer = AssignCommitteeRoleSerializer(data={
             "tribunal": tribunal.id,
             "user": user.id,
             "role": role

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from semesters.models import Semester
-from datetime import date
+from datetime import date, time, timedelta
 
 class Command(BaseCommand):
     help = "Seed past, current, and future semesters"
@@ -11,19 +11,22 @@ class Command(BaseCommand):
                 "name": "2024-2025 Fall",
                 "start_date": date(2024, 9, 16),
                 "end_date": date(2025, 1, 31),
-                "presentation_day": date(2025, 1, 22),
+                "int_presentation_date": date(2025, 1, 20),
+                "last_presentation_date": date(2025, 1, 22),
             },
             {
                 "name": "2024-2025 Spring",
                 "start_date": date(2025, 2, 10),
                 "end_date": date(2025, 7, 10),
-                "presentation_day": date(2025, 6, 25),
+                "int_presentation_date": date(2025, 6, 23),
+                "last_presentation_date": date(2025, 6, 25),
             },
             {
                 "name": "2025-2026 Fall",
                 "start_date": date(2025, 9, 15),
                 "end_date": date(2026, 1, 30),
-                "presentation_day": date(2026, 1, 20),
+                "int_presentation_date": date(2026, 1, 18),
+                "last_presentation_date": date(2026, 1, 20),
             },
         ]
 
@@ -32,7 +35,13 @@ class Command(BaseCommand):
                 name=data["name"],
                 start_date=data["start_date"],
                 end_date=data["end_date"],
-                presentation_day=data["presentation_day"],
+                int_presentation_date=data["int_presentation_date"],
+                last_presentation_date=data["last_presentation_date"],
+                daily_start_time=time(9, 0),
+                daily_end_time=time(18, 0),
+                pre_duration=timedelta(minutes=45),
+                min_committees=3,
+                max_committees=5
             )
             for data in semesters
             if not Semester.objects.filter(name=data["name"]).exists()

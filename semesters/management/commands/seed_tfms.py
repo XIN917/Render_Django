@@ -11,12 +11,7 @@ import random
 class Command(BaseCommand):
     help = "Seed TFMs with sample data"
 
-    def init(self):
-        TFM.objects.all().delete()
-        self.stdout.write(self.style.WARNING("🗑️ Deleted all existing TFMs."))
-
     def handle(self, *args, **kwargs):
-        self.init()
         students = list(User.objects.filter(role="student"))
         teachers = list(User.objects.filter(role="teacher", is_superuser=False, is_staff=False))
 
