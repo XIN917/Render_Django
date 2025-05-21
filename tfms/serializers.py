@@ -57,7 +57,7 @@ class TFMSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"author": "An author (student) must be assigned."})
 
         # Validate director rules
-        if not directors and not (user.role == User.TEACHER and not user.is_superuser):
+        if not directors and not (user.role == User.TEACHER or user.is_superuser):
             raise serializers.ValidationError({"directors": "At least one director must be assigned."})
 
         # 🛡️ Prevent duplicate
@@ -87,12 +87,9 @@ class TFMSerializer(serializers.ModelSerializer):
         if not author and user.role == User.STUDENT:
             validated_data["author"] = user
 
-        # Auto assign director if teacher and no explicit directors
-        if not provided_directors and user.role == User.TEACHER and not user.is_superuser:
+        # Auto assign director if teacher or admin and no explicit directors
+        if not provided_directors and (user.role == User.TEACHER or user.is_superuser):
             provided_directors = [user]
-
-        if not provided_directors:
-            raise serializers.ValidationError({"directors": "At least one director must be assigned."})
 
         tfm = TFM.objects.create(**validated_data)
         tfm.directors.set(provided_directors)
