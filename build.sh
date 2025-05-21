@@ -7,9 +7,6 @@ pip install -r requirements.txt
 # Collect static files
 python manage.py collectstatic --no-input
 
-echo "⚠️ Faking migrations for applications"
-python manage.py migrate applications --fake
-
 # Run migrations
 python manage.py makemigrations --no-input
 python manage.py migrate --no-input
