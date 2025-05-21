@@ -22,8 +22,8 @@ class TrackAPITestCase(TestCase):
             daily_start_time=time(9, 0),
             daily_end_time=time(17, 0),
             pre_duration=timedelta(minutes=45),
-            min_judges=3,
-            max_judges=5
+            min_committees=3,
+            max_committees=5
         )
 
         # Users
