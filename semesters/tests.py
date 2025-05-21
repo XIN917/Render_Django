@@ -15,8 +15,8 @@ class SemesterTests(TestCase):
             end_date="2025-05-10",
             int_presentation_date="2025-05-20",
             last_presentation_date="2025-05-23",
-            min_judges=3,
-            max_judges=5
+            min_committees=3,
+            max_committees=5
         )
         self.admin = User.objects.create_superuser(
             email="admin@example.com",
@@ -55,8 +55,8 @@ class SemesterTests(TestCase):
             "end_date": "2025-12-10",
             "int_presentation_date": "2025-12-20",
             "last_presentation_date": "2025-12-23",
-            "min_judges": 3,
-            "max_judges": 5
+            "min_committees": 3,
+            "max_committees": 5
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -68,7 +68,7 @@ class SemesterTests(TestCase):
             "end_date": "2025-12-10",
             "int_presentation_date": "2025-12-20",
             "last_presentation_date": "2025-12-23",
-            "min_judges": 3,
-            "max_judges": 5
+            "min_committees": 3,
+            "max_committees": 5
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

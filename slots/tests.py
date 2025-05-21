@@ -188,4 +188,4 @@ class SlotTests(APITestCase):
         self.assertIn("tfms", data)
         self.assertIn("is_full", data)
         self.assertEqual(data["is_full"], False)
-        self.assertRegex(data["tfm_duration"], r"^\d{2}:\d{2}$")
+        self.assertRegex(data["pre_duration"], r"^\d{2}:\d{2}$")
