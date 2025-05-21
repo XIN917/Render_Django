@@ -11,9 +11,7 @@ python manage.py collectstatic --no-input
 python manage.py migrate --no-input
 
 # Seed data
-python manage.py seed_users
-
-python manage.py seed_tfms
+python manage.py seed_all
 
 # Check if CREATE_SUPERUSER is set and not empty
 if [[ -n "$CREATE_SUPERUSER" ]]; then
