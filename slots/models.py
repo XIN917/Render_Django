@@ -52,6 +52,19 @@ class Slot(models.Model):
 
         if total_required_time.total_seconds() > actual_slot_seconds:
             raise ValidationError("Slot does not have enough time to accommodate all TFMs based on the standard duration.")
+        
+        # ✅ Check for time overlap in the same room and date
+        overlapping = Slot.objects.filter(
+            date=self.date,
+            room=self.room,
+            start_time__lt=self.end_time,
+            end_time__gt=self.start_time,
+        )
+        if self.pk:
+            overlapping = overlapping.exclude(pk=self.pk)
+
+        if overlapping.exists():
+            raise ValidationError("This slot overlaps with another slot in the same room and date.")
 
     def __str__(self):
         return f"{self.date} | {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')} in Room {self.room}"

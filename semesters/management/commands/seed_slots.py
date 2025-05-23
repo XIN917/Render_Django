@@ -14,7 +14,7 @@ class Command(BaseCommand):
         rooms = [f"{p}{n}" for p in room_prefixes for n in room_numbers]
 
         semester_names = [
-            "2023-2024 Fall",
+            "2024-2025 Fall",
             "2024-2025 Spring",
             "2025-2026 Fall",
         ]
@@ -30,9 +30,6 @@ class Command(BaseCommand):
             presentation_days = (semester.last_presentation_date - semester.int_presentation_date).days + 1
 
             for track in tracks:
-                existing_slots = Slot.objects.filter(track=track).values_list("start_time", "room", "date")
-                existing_slots_set = set(existing_slots)
-
                 slots_to_create = []
 
                 for day_offset in range(presentation_days):
@@ -46,26 +43,40 @@ class Command(BaseCommand):
                         start_dt = datetime.combine(slot_date, start)
                         end_limit_dt = datetime.combine(slot_date, semester.daily_end_time)
 
-                        max_tfms = (end_limit_dt - start_dt) // duration
+                        # Calculate max_tfms (capped at 4)
+                        calculated_max = (end_limit_dt - start_dt) // duration
+                        max_tfms = min(calculated_max, 4)
                         if max_tfms <= 0:
                             continue
 
-                        end = (start_dt + duration * max_tfms).time()
+                        end_dt = start_dt + duration * max_tfms
+                        end = end_dt.time()
+
                         room = rooms[i % len(rooms)]
 
-                        if (start, room, slot_date) not in existing_slots_set:
-                            slots_to_create.append(Slot(
-                                track=track,
-                                date=slot_date,
-                                start_time=start,
-                                end_time=end,
-                                room=room,
-                                max_tfms=max_tfms,
-                            ))
+                        # Overlap check
+                        overlapping = Slot.objects.filter(
+                            date=slot_date,
+                            room=room,
+                            start_time__lt=end,
+                            end_time__gt=start
+                        )
+                        if overlapping.exists():
+                            continue
+
+                        # Append slot
+                        slots_to_create.append(Slot(
+                            track=track,
+                            date=slot_date,
+                            start_time=start,
+                            end_time=end,
+                            room=room,
+                            max_tfms=max_tfms,
+                        ))
 
                 if slots_to_create:
                     Slot.objects.bulk_create(slots_to_create)
                     self.stdout.write(self.style.SUCCESS(
                         f"✅ Created {len(slots_to_create)} slots for track: {track.title}"))
                 else:
-                    self.stdout.write(f"⚠️ All slots for track {track.title} already exist")
+                    self.stdout.write(f"⚠️ All slots for track {track.title} already exist or conflict with others.")
