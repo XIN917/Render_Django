@@ -1,5 +1,5 @@
 @startuml models_uml
-' Django Models UML Diagram (actualizado)
+' Django Models UML Diagram (refined for clarity)
 
 ' Users
 class User {
@@ -109,41 +109,41 @@ class Institution {
 }
 
 ' Relationships
-User "1" -- "0..*" TeacherApplication : applies >
+User "1" -- "0..*" TeacherApplication : submits >
 note on link
 only students
 end note
-User "1" -- "1" Profile : has >
+User "1" -- "1" Profile : has profile >
 User "1" -- "*" TFM : submits >
 User "*" -- "*" TFM : directs >
 User "1" -- "*" TFMReview : reviews >
 note on link
 only directors or admin
 end note
-User "1" -- "*" Committee : committee_roles >
+User "1" -- "*" Committee : attends as >
 note on link
 only teachers
 end note
-User "*" -- "1" Institution : belongs_to >
+User "*" -- "1" Institution : is assigned to >
 note on link
 only professors
 end note
 
-TeacherApplication "*" -- "1" Institution : institution >
-TeacherApplication "*" -- "1" User : applicant >
-Profile "*" -- "1" Institution : institution >
-Profile "1" -- "1" User : profile_of >
-TFM "1" -- "0..1" TFMReview : review >
-TFM "*" -- "1" User : author >
-TFM "*" -- "*" User : directors >
-TFMReview "*" -- "1" User : reviewed_by >
-Slot "*" -- "1" Track : track >
-Slot "1" -- "*" Tribunal : tribunals >
-Track "*" -- "1" Semester : semester >
-Tribunal "1" -- "1" TFM : tfm >
-Tribunal "*" -- "1" Slot : slot >
-Tribunal "*" -- "*" Committee : committees >
-Committee "*" -- "1" Tribunal : tribunal >
-Committee "*" -- "1" User : user >
+TeacherApplication "*" -- "1" Institution : assigned to >
+TeacherApplication "*" -- "1" User : submitted by >
+Profile "*" -- "1" Institution : belongs to >
+Profile "1" -- "1" User : belongs to >
+TFM "1" -- "0..1" TFMReview : is reviewed by >
+TFM "*" -- "1" User : authored by >
+TFM "*" -- "*" User : directed by >
+TFMReview "*" -- "1" User : reviewed by >
+Slot "*" -- "1" Track : part of >
+Slot "1" -- "*" Tribunal : includes >
+Track "*" -- "1" Semester : belongs to >
+Tribunal "1" -- "1" TFM : evaluates >
+Tribunal "*" -- "1" Slot : is assigned to >
+Tribunal "*" -- "*" Committee : consists of >
+Committee "*" -- "1" Tribunal : part of >
+Committee "*" -- "1" User : assigned to >
 
 @enduml

@@ -20,10 +20,6 @@ class Slot(models.Model):
         return [tribunal.tfm for tribunal in self.tribunals.select_related('tfm') if tribunal.tfm]
 
     def clean(self):
-        # Ensure track and semester are defined
-        if not self.track or not self.track.semester:
-            raise ValidationError("Slot must be linked to a track with an active semester.")
-
         semester = self.track.semester
 
         # Check date is in allowed presentation window

@@ -189,13 +189,24 @@ To measure and view test coverage for your Django project:
    coverage run manage.py test
    ```
 
-3. **View the coverage report in the terminal:**
+3. **Run coverage for a specific app only:**
+
+   Replace `<yourapp>` with the name of your Django app:
+   ```sh
+   coverage run --source=<yourapp> manage.py test <yourapp>
+   ```
+
+4. **View the coverage report in the terminal:**
 
    ```sh
    coverage report
    ```
+   Or, to see missing lines:
+   ```sh
+   coverage report -m
+   ```
 
-4. **(Optional) Generate an HTML coverage report:**
+5. **(Optional) Generate an HTML coverage report:**
 
    ```sh
    coverage html

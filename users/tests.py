@@ -24,7 +24,6 @@ class UserModelTest(TestCase):
         with self.assertRaises(ValueError):
             User.objects.create_user(email="", full_name="Missing Email")
 
-
 class UserPermissionTests(TestCase):
     def setUp(self):
         self.client = APIClient()

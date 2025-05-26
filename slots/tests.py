@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.conf import settings
 import tempfile
 import shutil
+from django.core.exceptions import ValidationError
 
 from slots.models import Slot
 from slots.serializers import SlotReadSerializer
@@ -50,10 +51,10 @@ class SlotTests(APITestCase):
 
         self.semester = Semester.objects.create(
             name="Test Semester",
-            start_date="2025-01-01",
-            end_date="2025-06-30",
-            int_presentation_date="2025-06-15",
-            last_presentation_date="2025-06-20",
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 6, 30),
+            int_presentation_date=date(2025, 6, 15),
+            last_presentation_date=date(2025, 6, 20),
             daily_start_time=time(9, 0),
             daily_end_time=time(18, 0),
             pre_duration=timedelta(minutes=45),
@@ -68,7 +69,7 @@ class SlotTests(APITestCase):
             start_time=time(10, 0),
             end_time=time(11, 0),
             room="A1",
-            date="2025-06-17",
+            date=date(2025, 6, 17),
             max_tfms=2
         )
 
@@ -189,3 +190,30 @@ class SlotTests(APITestCase):
         self.assertIn("is_full", data)
         self.assertEqual(data["is_full"], False)
         self.assertRegex(data["pre_duration"], r"^\d{2}:\d{2}$")
+
+    def test_slot_date_outside_presentation_window(self):
+        self.slot.date = date(2025, 6, 10)  # before int_presentation_date
+        with self.assertRaises(ValidationError) as ctx:
+            self.slot.clean()
+        self.assertIn("Slot date must be within the allowed presentation period.", str(ctx.exception))
+
+    def test_slot_date_on_weekend(self):
+        self.slot.date = date(2025, 6, 15)  # Sunday, still weekend but inside range
+        with self.assertRaises(ValidationError) as ctx:
+            self.slot.clean()
+        self.assertIn("Slot date cannot fall on a weekend.", str(ctx.exception))
+
+    def test_slot_duration_too_short_for_tfms(self):
+        self.slot.start_time = time(10, 0)
+        self.slot.end_time = time(10, 30)  # only 30 minutes
+        self.slot.max_tfms = 2  # requires 90 minutes total
+        with self.assertRaises(ValidationError) as ctx:
+            self.slot.clean()
+        self.assertIn("Slot does not have enough time to accommodate all TFMs", str(ctx.exception))
+
+    def test_slot_valid_clean_passes(self):
+        self.slot.end_time = time(11, 30)  # extend to 90 minutes
+        try:
+            self.slot.clean()  # should not raise
+        except ValidationError:
+            self.fail("Slot.clean() raised ValidationError unexpectedly!")
