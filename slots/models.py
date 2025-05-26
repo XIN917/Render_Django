@@ -11,7 +11,7 @@ class Slot(models.Model):
     max_tfms = models.PositiveIntegerField(default=2)
     room = models.CharField(max_length=100)
 
-    track = models.ForeignKey('tracks.Track', on_delete=models.SET_NULL, null=True, blank=True, related_name='slots')
+    track = models.ForeignKey('tracks.Track', on_delete=models.PROTECT, related_name='slots')
 
     def is_full(self):
         return self.tribunals.count() >= self.max_tfms

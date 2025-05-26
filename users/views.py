@@ -39,7 +39,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # 🟢 Authenticated users can view teachers/students, but not everyone
         role_filter = self.request.query_params.get('role')
-        if role_filter in ['teacher', 'student']:
+        if role_filter in [User.TEACHER, User.STUDENT]:
             return self.queryset.filter(role=role_filter, is_superuser=False)
 
         # 🟠 Fallback to only current user

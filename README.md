@@ -172,3 +172,33 @@ python manage.py graph_models yourapp --include-models User,TFM,Tribunal -o diag
 # Exclude unwanted models
 python manage.py graph_models yourapp --exclude-models LogEntry,Group -o diagram.png
 ```
+
+## 🧪 Test Coverage
+
+To measure and view test coverage for your Django project:
+
+1. **Install coverage** (if not already installed):
+
+   ```sh
+   pip install coverage
+   ```
+
+2. **Run tests with coverage:**
+
+   ```sh
+   coverage run manage.py test
+   ```
+
+3. **View the coverage report in the terminal:**
+
+   ```sh
+   coverage report
+   ```
+
+4. **(Optional) Generate an HTML coverage report:**
+
+   ```sh
+   coverage html
+   ```
+   The HTML report will be saved in the `htmlcov` directory. Open `htmlcov/index.html` in your browser to view detailed coverage information.
+````
