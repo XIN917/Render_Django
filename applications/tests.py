@@ -32,8 +32,7 @@ class ApplicationPermissionTests(TestCase):
 
         self.application = TeacherApplication.objects.create(
             user=self.student,
-            institution=self.institution,
-            attachment=SimpleUploadedFile("test.pdf", b"dummy content", content_type="application/pdf")
+            institution=self.institution
         )
 
     # ─────────────────────────────────────────
@@ -132,6 +131,8 @@ class ApplicationPermissionTests(TestCase):
         self.assertEqual(self.application.institution.id, new_institution.id)
         self.application.refresh_from_db()
         self.assertIn("new", self.application.attachment.name)
+        if self.application.attachment:
+            self.application.attachment.delete(save=False)
 
     def test_manage_application_invalid_institution(self):
         self.client.force_login(self.admin)
@@ -177,6 +178,9 @@ class ApplicationPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.application.refresh_from_db()
         self.assertIn("doc", self.application.attachment.name)
+
+        if self.application.attachment:
+            self.application.attachment.delete(save=False)
 
     def test_update_without_status_only_institution(self):
         self.application.status = TeacherApplication.PENDING

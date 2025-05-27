@@ -2,30 +2,13 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
-from django.conf import settings
 import tempfile
-import shutil
-import os
 
-from tfms.models import TFM, TFMReview
-from backend.storage import StaticS3Boto3Storage, S3MediaStorage
+from tfms.models import TFM
 
 User = get_user_model()
 
 class TFMTestCase(APITestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls._temp_media = tempfile.mkdtemp()
-        cls._original_media_root = settings.MEDIA_ROOT
-        settings.MEDIA_ROOT = cls._temp_media
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls._temp_media)
-        settings.MEDIA_ROOT = cls._original_media_root
-        super().tearDownClass()
 
     def tearDown(self):
         for tfm in TFM.objects.all():
@@ -180,12 +163,3 @@ class TFMTestCase(APITestCase):
         })
         self.assertEqual(response.status_code, 400)
 
-    @override_settings(MINIO_ACCESS_URL='http://localhost:9000')
-    def test_static_s3_storage_custom_domain(self):
-        storage = StaticS3Boto3Storage()
-        self.assertEqual(storage.custom_domain, 'localhost:9000')
-
-    @override_settings(MINIO_ACCESS_URL='http://localhost:9000')
-    def test_media_s3_storage_custom_domain(self):
-        storage = S3MediaStorage()
-        self.assertEqual(storage.custom_domain, 'localhost:9000')

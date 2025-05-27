@@ -73,7 +73,7 @@ class ProfileTests(TestCase):
     def test_admin_can_retrieve_profile(self):
         self.client.force_authenticate(self.admin)
         profile = self.user.profile
-        response = self.client.get(f"/profiles/{profile.id}/")
+        response = self.client.get(f"/profiles/{profile.pk}/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["user"]["email"], self.user.email)
 

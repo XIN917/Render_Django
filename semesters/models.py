@@ -24,14 +24,24 @@ class Semester(models.Model):
 
     def clean(self):
         # Presentation range must be valid
-        if self.int_presentation_date > self.last_presentation_date:
-            raise ValidationError("Initial presentation date must be before or equal to the last presentation date.")
+        if self.int_presentation_date >= self.last_presentation_date:
+            raise ValidationError("Initial presentation date must be strictly before the last presentation date.")
 
-        # Weekday check
+        # Semester date range must be valid
+        if self.start_date >= self.end_date:
+            raise ValidationError("Semester start date must be strictly before the end date.")
+
+        # Weekday check for presentation dates
         if self.int_presentation_date.weekday() >= 5:
             raise ValidationError({'int_presentation_date': "Initial presentation date cannot be on a weekend."})
         if self.last_presentation_date.weekday() >= 5:
             raise ValidationError({'last_presentation_date': "Last presentation date cannot be on a weekend."})
+
+        # Weekday check for semester start and end dates
+        if self.start_date.weekday() >= 5:
+            raise ValidationError({'start_date': "Semester start date cannot be on a weekend."})
+        if self.end_date.weekday() >= 5:
+            raise ValidationError({'end_date': "Semester end date cannot be on a weekend."})
 
     def __str__(self):
         return self.name

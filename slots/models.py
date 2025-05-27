@@ -11,7 +11,7 @@ class Slot(models.Model):
     max_tfms = models.PositiveIntegerField(default=2)
     room = models.CharField(max_length=100)
 
-    track = models.ForeignKey('tracks.Track', on_delete=models.SET_NULL, null=True, blank=True, related_name='slots')
+    track = models.ForeignKey('tracks.Track', on_delete=models.PROTECT, related_name='slots')
 
     def is_full(self):
         return self.tribunals.count() >= self.max_tfms
@@ -20,10 +20,6 @@ class Slot(models.Model):
         return [tribunal.tfm for tribunal in self.tribunals.select_related('tfm') if tribunal.tfm]
 
     def clean(self):
-        # Ensure track and semester are defined
-        if not self.track or not self.track.semester:
-            raise ValidationError("Slot must be linked to a track with an active semester.")
-
         semester = self.track.semester
 
         # Check date is in allowed presentation window
@@ -52,6 +48,19 @@ class Slot(models.Model):
 
         if total_required_time.total_seconds() > actual_slot_seconds:
             raise ValidationError("Slot does not have enough time to accommodate all TFMs based on the standard duration.")
+        
+        # ✅ Check for time overlap in the same room and date
+        overlapping = Slot.objects.filter(
+            date=self.date,
+            room=self.room,
+            start_time__lt=self.end_time,
+            end_time__gt=self.start_time,
+        )
+        if self.pk:
+            overlapping = overlapping.exclude(pk=self.pk)
+
+        if overlapping.exists():
+            raise ValidationError("This slot overlaps with another slot in the same room and date.")
 
     def __str__(self):
         return f"{self.date} | {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')} in Room {self.room}"

@@ -1,0 +1,149 @@
+@startuml models_uml
+' Django Models UML Diagram (refined for clarity)
+
+' Users
+class User {
+    +email: str
+    +full_name: str
+    +role: str
+    +password: str
+    +is_staff: bool
+    +is_superuser: bool
+    +__str__(): str
+    +set_password(password: str): void
+}
+
+' Applications
+class TeacherApplication {
+    +attachment?: File
+    +status: str
+    +created_at: datetime
+    +updated_at: datetime
+    +clean(): void
+    +approve(): void
+    +reject(): void
+    +__str__(): str
+}
+
+' Profiles
+class Profile {
+    +bio?: str
+    +photo?: File
+    +__str__(): str
+}
+
+' TFMs
+class TFM {
+    +title: str
+    +description: str
+    +file: File
+    +attachment?: File
+    +created_at: datetime
+    +status: str
+    +__str__(): str
+}
+class TFMReview {
+    +reviewed_at: datetime
+    +action: str
+    +comment: str
+    +__str__(): str
+}
+
+' Slots
+class Slot {
+    +date: date
+    +start_time: time
+    +end_time: time
+    +max_tfms: int
+    +room: str
+    +is_full(): bool
+    +get_tfms(): list[TFM]
+    +clean(): void
+    +__str__(): str
+}
+
+' Tracks
+class Track {
+    +title: str
+    +__str__(): str
+}
+
+' Tribunals
+class Tribunal {
+    +index: int
+    +__str__(): str
+    +save(): void
+    +add_committee(user: User, role: str): Committee
+    +get_semester(): Semester
+    +is_ready(): bool
+    +is_full(): bool
+}
+
+' Committees
+class Committee {
+    +role: str
+    +__str__(): str
+}
+
+' Semesters
+class Semester {
+    +name: str
+    +start_date: date
+    +end_date: date
+    +int_presentation_date: date
+    +last_presentation_date: date
+    +daily_start_time: time
+    +daily_end_time: time
+    +pre_duration: timedelta
+    +min_committees: int
+    +max_committees: int
+    +clean(): void
+    +__str__(): str
+}
+
+' Institutions
+class Institution {
+    +name: str
+    +city: str
+    +__str__(): str
+}
+
+' Relationships
+User "1" -- "0..*" TeacherApplication : submits >
+note on link
+only students
+end note
+User "1" -- "1" Profile : has profile >
+User "1" -- "*" TFM : submits >
+User "*" -- "*" TFM : directs >
+User "1" -- "*" TFMReview : reviews >
+note on link
+only directors or admin
+end note
+User "1" -- "*" Committee : attends as >
+note on link
+only teachers
+end note
+User "*" -- "1" Institution : is assigned to >
+note on link
+only professors
+end note
+
+TeacherApplication "*" -- "1" Institution : assigned to >
+TeacherApplication "*" -- "1" User : submitted by >
+Profile "*" -- "1" Institution : belongs to >
+Profile "1" -- "1" User : belongs to >
+TFM "1" -- "0..1" TFMReview : is reviewed by >
+TFM "*" -- "1" User : authored by >
+TFM "*" -- "*" User : directed by >
+TFMReview "*" -- "1" User : reviewed by >
+Slot "*" -- "1" Track : part of >
+Slot "1" -- "*" Tribunal : includes >
+Track "*" -- "1" Semester : belongs to >
+Tribunal "1" -- "1" TFM : evaluates >
+Tribunal "*" -- "1" Slot : is assigned to >
+Tribunal "*" -- "*" Committee : consists of >
+Committee "*" -- "1" Tribunal : part of >
+Committee "*" -- "1" User : assigned to >
+
+@enduml
