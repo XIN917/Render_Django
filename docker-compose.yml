@@ -12,18 +12,11 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
-
-  minio-client:
-    image: minio/mc:latest
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      /usr/bin/mc alias set local http://minio:9000 minio minio123;
-      /usr/bin/mc rm -r --force local/media || true;
-      /usr/bin/mc mb local/media;
-      /usr/bin/mc anonymous set download local/media;
-      "
+      
 volumes:
   minio-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: 'C:/UB/4th/TFG/media'
+      o: bind
