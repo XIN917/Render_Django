@@ -8,14 +8,14 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write(self.style.NOTICE("🚀 Starting full data seed..."))
 
-        self.stdout.write(self.style.NOTICE("📦 Seeding users..."))
-        management.call_command("seed_users")
-
         self.stdout.write(self.style.NOTICE("🏛️ Seeding institutions..."))
         management.call_command("seed_institutions")
 
         self.stdout.write(self.style.NOTICE("📅 Seeding semesters..."))
         management.call_command("seed_semesters")
+
+        self.stdout.write(self.style.NOTICE("📦 Seeding users..."))
+        management.call_command("seed_users")
 
         self.stdout.write(self.style.NOTICE("📊 Seeding tracks..."))
         management.call_command("seed_tracks")
