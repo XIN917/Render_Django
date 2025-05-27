@@ -7,7 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         semesters = {
-            "2023-2024 Fall": [
+            "2024-2025 Fall": [
                 "Data Engineering Fundamentals",
                 "Mobile App Development",
                 "Smart City Infrastructures",
