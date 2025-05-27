@@ -203,3 +203,33 @@ class SlotTests(APITestCase):
             self.slot.clean()  # should not raise
         except ValidationError:
             self.fail("Slot.clean() raised ValidationError unexpectedly!")
+
+    def test_slot_uses_custom_pre_duration(self):
+        # Shorter duration, should fit easily
+        self.slot.pre_duration = timedelta(minutes=20)
+        self.slot.end_time = time(10, 40)  # 40 minutes available
+        self.slot.max_tfms = 2  # Needs 40 minutes total
+        try:
+            self.slot.clean()
+        except ValidationError:
+            self.fail("Slot.clean() raised ValidationError unexpectedly with custom pre_duration.")
+
+    def test_slot_falls_back_to_semester_pre_duration(self):
+        # Ensure slot without explicit pre_duration uses semester value
+        self.slot.pre_duration = None
+        self.slot.max_tfms = 2
+        self.slot.start_time = time(10, 0)
+        self.slot.end_time = time(11, 30)  # 90 mins available
+        try:
+            self.slot.clean()
+        except ValidationError:
+            self.fail("Slot.clean() raised ValidationError unexpectedly when using semester pre_duration.")
+
+    def test_slot_custom_pre_duration_too_short(self):
+        self.slot.pre_duration = timedelta(minutes=30)  # Needs 60 minutes total
+        self.slot.start_time = time(10, 0)
+        self.slot.end_time = time(10, 45)  # Only 45 minutes available
+        self.slot.max_tfms = 2
+        with self.assertRaises(ValidationError) as ctx:
+            self.slot.clean()
+        self.assertIn("Slot does not have enough time to accommodate all TFMs", str(ctx.exception))
