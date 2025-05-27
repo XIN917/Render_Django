@@ -3,9 +3,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from datetime import time, timedelta, date
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.conf import settings
 import tempfile
-import shutil
 from django.core.exceptions import ValidationError
 
 from slots.models import Slot
@@ -18,18 +16,6 @@ from semesters.models import Semester
 User = get_user_model()
 
 class SlotTests(APITestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls._temp_media = tempfile.mkdtemp()
-        cls._original_media_root = settings.MEDIA_ROOT
-        settings.MEDIA_ROOT = cls._temp_media
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls._temp_media)
-        settings.MEDIA_ROOT = cls._original_media_root
-        super().tearDownClass()
 
     def tearDown(self):
         for tfm in TFM.objects.all():
