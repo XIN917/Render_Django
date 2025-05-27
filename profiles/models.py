@@ -6,7 +6,8 @@ class Profile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='profile'
+        related_name='profile',
+        primary_key=True  # 👈 This line makes user_id also be the profile's PK
     )
     bio = models.TextField(blank=True, null=True)
     institution = models.ForeignKey(Institution, on_delete=models.SET_NULL, null=True, blank=True)
