@@ -55,7 +55,6 @@ class Slot {
     +max_tfms: int
     +room: str
     +pre_duration?: timedelta
-    +effective_pre_duration: timedelta
     +is_full(): bool
     +get_tfms(): list[TFM]
     +clean(): void
