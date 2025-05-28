@@ -1,7 +1,8 @@
-@startuml models_uml
-' Django Models UML Diagram (refined for clarity)
+@startuml models_serializers_views_uml
+' Django Models UML Diagram con Serializers y Views
 
-' Users
+' Models
+
 class User {
     +email: str
     +full_name: str
@@ -13,7 +14,6 @@ class User {
     +set_password(password: str): void
 }
 
-' Applications
 class TeacherApplication {
     +attachment?: File
     +status: str
@@ -25,14 +25,12 @@ class TeacherApplication {
     +__str__(): str
 }
 
-' Profiles
 class Profile {
     +bio?: str
     +photo?: File
     +__str__(): str
 }
 
-' TFMs
 class TFM {
     +title: str
     +description: str
@@ -42,6 +40,7 @@ class TFM {
     +status: str
     +__str__(): str
 }
+
 class TFMReview {
     +reviewed_at: datetime
     +action: str
@@ -49,26 +48,25 @@ class TFMReview {
     +__str__(): str
 }
 
-' Slots
 class Slot {
     +date: date
     +start_time: time
     +end_time: time
     +max_tfms: int
     +room: str
+    +pre_duration?: timedelta
+    +effective_pre_duration: timedelta
     +is_full(): bool
     +get_tfms(): list[TFM]
     +clean(): void
     +__str__(): str
 }
 
-' Tracks
 class Track {
     +title: str
     +__str__(): str
 }
 
-' Tribunals
 class Tribunal {
     +index: int
     +__str__(): str
@@ -79,13 +77,11 @@ class Tribunal {
     +is_full(): bool
 }
 
-' Committees
 class Committee {
     +role: str
     +__str__(): str
 }
 
-' Semesters
 class Semester {
     +name: str
     +start_date: date
@@ -101,12 +97,63 @@ class Semester {
     +__str__(): str
 }
 
-' Institutions
 class Institution {
     +name: str
     +city: str
     +__str__(): str
 }
+
+' Serializers
+class UserSerializer
+class ProfileSerializer
+class TeacherApplicationSerializer
+class TFMSerializer
+class TFMReviewSerializer
+class SlotSerializer
+class TrackSerializer
+class TribunalSerializer
+class CommitteeSerializer
+class SemesterSerializer
+class InstitutionSerializer
+
+' Views
+class UserViewSet
+class ProfileViewSet
+class TeacherApplicationViewSet
+class TFMViewSet
+class TFMReviewViewSet
+class SlotViewSet
+class TrackViewSet
+class TribunalViewSet
+class CommitteeViewSet
+class SemesterViewSet
+class InstitutionViewSet
+
+' Serializers to Models
+UserSerializer --> User
+ProfileSerializer --> Profile
+TeacherApplicationSerializer --> TeacherApplication
+TFMSerializer --> TFM
+TFMReviewSerializer --> TFMReview
+SlotSerializer --> Slot
+TrackSerializer --> Track
+TribunalSerializer --> Tribunal
+CommitteeSerializer --> Committee
+SemesterSerializer --> Semester
+InstitutionSerializer --> Institution
+
+' Views to Serializers
+UserViewSet --> UserSerializer
+ProfileViewSet --> ProfileSerializer
+TeacherApplicationViewSet --> TeacherApplicationSerializer
+TFMViewSet --> TFMSerializer
+TFMReviewViewSet --> TFMReviewSerializer
+SlotViewSet --> SlotSerializer
+TrackViewSet --> TrackSerializer
+TribunalViewSet --> TribunalSerializer
+CommitteeViewSet --> CommitteeSerializer
+SemesterViewSet --> SemesterSerializer
+InstitutionViewSet --> InstitutionSerializer
 
 ' Relationships
 User "1" -- "0..*" TeacherApplication : submits >
