@@ -66,6 +66,25 @@ class TribunalTests(APITestCase):
             track=self.track, start_time=time(9, 0), end_time=time(10, 30),
             room="A101", date=date(2025, 6, 17), max_tfms=2
         )
+    
+    def create_tribunal_in_other_semester(self):
+        self.other_semester = Semester.objects.create(
+            name="Fall 2025", start_date=date(2025, 9, 1), end_date=date(2026, 1, 31),
+            int_presentation_date=date(2025, 12, 15), last_presentation_date=date(2026, 1, 10),
+            daily_start_time=time(8, 0), daily_end_time=time(18, 0),
+            pre_duration=timedelta(minutes=45), min_committees=3, max_committees=5
+        )
+        self.other_track = Track.objects.create(title="Other Track", semester=self.other_semester)
+        self.other_slot = Slot.objects.create(
+            track=self.other_track, start_time=time(10, 0), end_time=time(11, 0),
+            room="B202", date=date(2025, 12, 10), max_tfms=2
+        )
+        other_tfm = TFM.objects.create(
+            title="Other TFM", description="desc", file=SimpleUploadedFile("otfm.pdf", b"data"),
+            status="pending", author=self.student
+        )
+        other_tfm.directors.set([self.director])
+        return Tribunal.objects.create(tfm=other_tfm, slot=self.other_slot)
 
     # ──────── Model Tests ────────
 
@@ -230,14 +249,6 @@ class TribunalTests(APITestCase):
         response = self.client.post(f"/tribunals/{tribunal.id}/auto_assign/", {"role": "invalid"})
         self.assertEqual(response.status_code, 400)
 
-    def test_available_and_ready_tribunals(self):
-        self.client.force_authenticate(user=self.admin)
-        Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
-        response = self.client.get("/tribunals/available/")
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get("/tribunals/ready/")
-        self.assertEqual(response.status_code, 200)
-
     def test_available_and_ready_tribunals_empty(self):
         Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
         self.client.force_authenticate(user=self.admin)
@@ -247,3 +258,79 @@ class TribunalTests(APITestCase):
         self.assertEqual(resp2.status_code, 200)
         self.assertEqual(len(resp1.data), 1)
         self.assertEqual(len(resp2.data), 0)
+    
+    def test_my_assignments_returns_correct_tribunals(self):
+        # Create a tribunal and assign the current user as a committee member
+        tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+        Committee.objects.create(tribunal=tribunal, user=self.president, role="president")
+
+        self.client.force_authenticate(user=self.president)
+        response = self.client.get("/tribunals/my_assignments/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], tribunal.id)
+
+    def test_available_and_ready_tribunals(self):
+        self.client.force_authenticate(user=self.admin)
+        tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+        Committee.objects.create(tribunal=tribunal, user=self.president, role='president')
+        Committee.objects.create(tribunal=tribunal, user=self.secretary, role='secretary')
+        Committee.objects.create(tribunal=tribunal, user=self.vocal1, role='vocal')
+
+        resp_available = self.client.get("/tribunals/available/")
+        resp_ready = self.client.get("/tribunals/ready/")
+
+        self.assertEqual(resp_available.status_code, 200)
+        self.assertEqual(resp_ready.status_code, 200)
+        self.assertEqual(len(resp_ready.data), 1)
+    
+    def test_my_assignments_filtered_by_semester(self):
+        tribunal_main = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+        Committee.objects.create(tribunal=tribunal_main, user=self.president, role="president")
+
+        tribunal_other = self.create_tribunal_in_other_semester()
+        Committee.objects.create(tribunal=tribunal_other, user=self.president, role="president")
+
+        self.client.force_authenticate(user=self.president)
+        resp = self.client.get(f"/tribunals/my_assignments/?semester={self.semester.id}")
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]["id"], tribunal_main.id)
+
+    def test_ready_tribunals_filtered_by_semester(self):
+        tribunal_main = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+        Committee.objects.create(tribunal=tribunal_main, user=self.president, role="president")
+        Committee.objects.create(tribunal=tribunal_main, user=self.secretary, role="secretary")
+        Committee.objects.create(tribunal=tribunal_main, user=self.vocal1, role="vocal")
+
+        tribunal_other = self.create_tribunal_in_other_semester()
+        Committee.objects.create(tribunal=tribunal_other, user=self.president, role="president")
+        Committee.objects.create(tribunal=tribunal_other, user=self.secretary, role="secretary")
+        Committee.objects.create(tribunal=tribunal_other, user=self.vocal1, role="vocal")
+
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.get(f"/tribunals/ready/?semester={self.semester.id}")
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]["id"], tribunal_main.id)
+    
+    def test_available_tribunals_current_semester_only(self):
+        # Set today's date inside self.semester and outside other_semester
+        today = date.today()
+        self.semester.start_date = today - timedelta(days=1)
+        self.semester.end_date = today + timedelta(days=1)
+        self.semester.save()
+
+        other_semester = self.create_tribunal_in_other_semester()
+        Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.get("/tribunals/available/")
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]["tfm"]["title"], self.tfm.title)
+
