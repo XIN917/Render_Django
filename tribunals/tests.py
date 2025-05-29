@@ -333,4 +333,27 @@ class TribunalTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data), 1)
         self.assertEqual(resp.data[0]["tfm"]["title"], self.tfm.title)
+    
+    def test_my_assignments_includes_author(self):
+        # Create a tribunal where the student is the author
+        tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+
+        # Authenticate as the student (author of the TFM)
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.get("/tribunals/my_assignments/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], tribunal.id)
+
+    def test_my_assignments_requires_authentication(self):
+        # Create a tribunal where the student is the TFM author
+        tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+
+        # Make an unauthenticated request
+        response = self.client.get("/tribunals/my_assignments/")
+
+        # Expect 403 Forbidden or 401 Unauthorized (depending on your permission settings)
+        self.assertIn(response.status_code, [401, 403])
 

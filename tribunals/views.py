@@ -7,6 +7,8 @@ from committees.serializers import AssignCommitteeRoleSerializer
 from committees.models import Committee
 from datetime import datetime, date
 from semesters.models import Semester
+from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
 
 from django_filters import rest_framework as filters
 
@@ -28,18 +30,22 @@ class TribunalViewSet(viewsets.ModelViewSet):
         return TribunalSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'available', 'ready', 'my_assignments']:
+        if self.action in ['list', 'retrieve', 'ready']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
     def _get_user_assigned_tribunals(self, user):
+        if isinstance(user, AnonymousUser):
+            return Tribunal.objects.none()  # Return empty QuerySet
+
         return Tribunal.objects.filter(
-            committees__user=user
+            Q(committees__user=user) |
+            Q(tfm__author=user)
         ).distinct().select_related(
             'slot__track__semester', 'tfm'
         ).prefetch_related('committees__user')
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['get'])
     def my_assignments(self, request):
         user = request.user
         semester = request.query_params.get("semester")
@@ -51,7 +57,7 @@ class TribunalViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(tribunals, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['get'])
     def available(self, request):
         user = request.user
         assigned_tribunals = self._get_user_assigned_tribunals(user)
