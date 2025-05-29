@@ -49,7 +49,7 @@ class TFMTestCase(APITestCase):
                 "file": pdf_file,
                 "directors": [self.teacher.id],
             }
-            response = self.client.post("/tfms/upload/", data, format="multipart")
+            response = self.client.post("/tfms/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_teacher_create(self):
@@ -63,7 +63,7 @@ class TFMTestCase(APITestCase):
                 "file": pdf_file,
                 "author": self.student.id,
             }
-            response = self.client.post("/tfms/create/", data, format="multipart")
+            response = self.client.post("/tfms/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_admin_can_see_all(self):
@@ -74,14 +74,14 @@ class TFMTestCase(APITestCase):
 
     def test_student_cannot_review(self):
         self.client.force_authenticate(user=self.student)
-        response = self.client.post(f"/tfms/review/{self.tfm.id}/", {
+        response = self.client.post(f"/tfms/{self.tfm.id}/review/", {
             "action": "approved", "comment": "Should not be allowed"
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_director_can_review(self):
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(f"/tfms/review/{self.tfm.id}/", {
+        response = self.client.post(f"/tfms/{self.tfm.id}/review/", {
             "action": "approved", "comment": "Looks good"
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -98,7 +98,7 @@ class TFMTestCase(APITestCase):
                 "author": self.student.id,
                 "directors": [self.teacher.id],
             }
-            response = self.client.post("/tfms/create/", data, format="multipart")
+            response = self.client.post("/tfms/", data, format="multipart")
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_tfm_str(self):
@@ -106,7 +106,7 @@ class TFMTestCase(APITestCase):
 
     def test_review_str(self):
         self.client.force_authenticate(user=self.teacher)
-        self.client.post(f"/tfms/review/{self.tfm.id}/", {
+        self.client.post(f"/tfms/{self.tfm.id}/review/", {
             "action": "approved", "comment": "Reviewed"
         })
         review = self.tfm.review
@@ -128,7 +128,7 @@ class TFMTestCase(APITestCase):
                 "author": self.student.id,
                 "directors": [self.teacher.id, extra_teacher.id, self.admin.id],
             }
-            response = self.client.post("/tfms/create/", data, format="multipart")
+            response = self.client.post("/tfms/", data, format="multipart")
             self.assertEqual(response.status_code, 400)
             self.assertIn("directors", response.data)
 
@@ -141,24 +141,24 @@ class TFMTestCase(APITestCase):
 
     def test_review_invalid_action(self):
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(f"/tfms/review/{self.tfm.id}/", {
+        response = self.client.post(f"/tfms/{self.tfm.id}/review/", {
             "action": "invalid", "comment": "Bad"
         })
         self.assertEqual(response.status_code, 400)
 
     def test_review_tfm_not_found(self):
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.post("/tfms/review/9999/", {
+        response = self.client.post("/tfms/9999/review/", {
             "action": "approved", "comment": "None"
         })
         self.assertEqual(response.status_code, 404)
 
     def test_review_already_done(self):
         self.client.force_authenticate(user=self.teacher)
-        self.client.post(f"/tfms/review/{self.tfm.id}/", {
+        self.client.post(f"/tfms/{self.tfm.id}/review/", {
             "action": "approved", "comment": "Looks good"
         })
-        response = self.client.post(f"/tfms/review/{self.tfm.id}/", {
+        response = self.client.post(f"/tfms/{self.tfm.id}/review/", {
             "action": "approved", "comment": "Again"
         })
         self.assertEqual(response.status_code, 400)
