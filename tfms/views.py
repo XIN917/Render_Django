@@ -29,7 +29,7 @@ class TFMViewSet(viewsets.ModelViewSet):
     filterset_class = TFMFilter
 
     def get_serializer_class(self):
-        if self.action in ['retrieve', 'list', 'my_tfms']:
+        if self.action in ['retrieve', 'list', 'my_tfms', 'pending_tfms']:
             return TFMReadSerializer
         return TFMSerializer
 
@@ -93,8 +93,9 @@ class TFMViewSet(viewsets.ModelViewSet):
         tfm = self.get_object()
         user = request.user
 
-        if user.role == User.TEACHER and not tfm.directors.filter(id=user.id).exists():
-            return Response({'detail': 'You are not a director of this TFM.'}, status=403)
+        if user.role == User.TEACHER and not (user.is_staff or user.is_superuser):
+            if not tfm.directors.filter(id=user.id).exists():
+                return Response({'detail': 'You are not a director of this TFM.'}, status=403)
 
         if tfm.status != 'pending':
             return Response({'detail': 'TFM has already been reviewed.'}, status=400)
@@ -120,3 +121,14 @@ class TFMViewSet(viewsets.ModelViewSet):
             'status': action,
             'tfm_id': tfm.id,
         }, status=200)
+    
+    @action(detail=False, methods=['get'], url_path='pending', permission_classes=[IsAdmin])
+    def pending_tfms(self, request):
+        pending = TFM.objects.filter(status='pending')
+        page = self.paginate_queryset(pending)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(pending, many=True)
+        return Response(serializer.data)

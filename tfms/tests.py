@@ -85,6 +85,16 @@ class TFMTestCase(APITestCase):
             "action": "approved", "comment": "Looks good"
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_admin_can_review(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(f"/tfms/{self.tfm.id}/review/", {
+            "action": "approved", "comment": "Approved by admin"
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.tfm.refresh_from_db()
+        self.assertEqual(self.tfm.status, "approved")
+        self.assertEqual(self.tfm.review.reviewed_by, self.admin)
 
     def test_admin_create_with_all_required_fields(self):
         self.client.force_authenticate(user=self.admin)
