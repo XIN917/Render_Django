@@ -1,17 +1,17 @@
-from rest_framework import generics, permissions, status
+from rest_framework import viewsets, mixins, permissions, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
+from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
 
 from .models import TFM, TFMReview
 from .serializers import TFMSerializer, TFMReadSerializer
 from users.permissions import IsStudent, IsTeacher, IsAdmin, IsAdminOrTeacher
 
-from django_filters.rest_framework import DjangoFilterBackend
-import django_filters
-
 User = get_user_model()
+
 
 class TFMFilter(django_filters.FilterSet):
     semester = django_filters.CharFilter(field_name="tribunal__slot__track__semester__id")
@@ -21,89 +21,77 @@ class TFMFilter(django_filters.FilterSet):
         fields = ['semester']
 
 
-# 🧑‍🎓 Student uploads their own TFM
-class StudentUploadTFMView(generics.CreateAPIView):
-    serializer_class = TFMSerializer
-    permission_classes = [permissions.IsAuthenticated, IsStudent]
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = TFMFilter
-
-
-# 👨‍🏫 Admin or teacher creates a TFM (auto-approved)
-class AdminOrTeacherCreateTFMView(generics.CreateAPIView):
-    serializer_class = TFMSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
-
-
-# 🔐 Admin-only view: list all TFMs
-class AllTFMsAdminView(generics.ListAPIView):
-    serializer_class = TFMReadSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+class TFMViewSet(viewsets.ModelViewSet):
     queryset = TFM.objects.all()
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = TFMFilter
-
-
-# 📃 Each user sees their associated TFMs
-class MyTFMsView(generics.ListAPIView):
-    serializer_class = TFMReadSerializer
+    serializer_class = TFMSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = TFMFilter
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.role == User.STUDENT:
-            return TFM.objects.filter(author=user)
-        elif user.role == User.TEACHER:
-            return TFM.objects.filter(directors=user).distinct()
-        elif user.is_staff or user.is_superuser:
-            return TFM.objects.all()
-        return TFM.objects.none()
-
-
-# 🔍 View and update a specific TFM (based on role and relation)
-class TFMDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = TFM.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.method == 'GET':
+        if self.action in ['retrieve', 'list', 'my_tfms']:
             return TFMReadSerializer
         return TFMSerializer
 
-    def get_object(self):
-        tfm = super().get_object()
-        user = self.request.user
+    def get_permissions(self):
+        if self.action == 'create':
+            if self.request.user.role == User.STUDENT:
+                permission_classes = [permissions.IsAuthenticated, IsStudent]
+            else:
+                permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
+        elif self.action == 'list':
+            permission_classes = [permissions.IsAuthenticated, IsAdmin]
+        elif self.action in ['my_tfms', 'retrieve', 'update', 'partial_update', 'destroy']:
+            permission_classes = [permissions.IsAuthenticated]
+        elif self.action == 'review':
+            permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [perm() for perm in permission_classes]
 
-        if user.is_staff or user.is_superuser:
-            return tfm
-        if user.role == User.STUDENT and tfm.author == user:
-            return tfm
-        if user.role == User.TEACHER and tfm.directors.filter(id=user.id).exists():
-            return tfm
+    def get_queryset(self):
+        if self.action == 'my_tfms':
+            user = self.request.user
+            if user.role == User.STUDENT:
+                return TFM.objects.filter(author=user)
+            elif user.role == User.TEACHER:
+                return TFM.objects.filter(directors=user).distinct()
+            elif user.is_staff or user.is_superuser:
+                return TFM.objects.all()
+            return TFM.objects.none()
+        return super().get_queryset()
 
-        raise PermissionDenied("You don't have permission to access this TFM.")
-
-    def patch(self, request, *args, **kwargs):
+    def perform_update(self, serializer):
         tfm = self.get_object()
-        user = request.user
-
+        user = self.request.user
         if user.role == User.STUDENT and tfm.status != 'pending':
             raise PermissionDenied("You can only update your TFM while it's pending.")
+        serializer.save()
 
-        return super().patch(request, *args, **kwargs)
-
-
-# 📝 Teachers (if director) or admins can review TFMs
-class ReviewTFMView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
-
-    def post(self, request, pk):
+    def retrieve(self, request, *args, **kwargs):
+        tfm = self.get_object()
         user = request.user
-        tfm = TFM.objects.filter(pk=pk).first()
-        if not tfm:
-            return Response({'detail': 'TFM not found.'}, status=404)
+        if user.is_staff or user.is_superuser or \
+           (user.role == User.STUDENT and tfm.author == user) or \
+           (user.role == User.TEACHER and tfm.directors.filter(id=user.id).exists()):
+            return super().retrieve(request, *args, **kwargs)
+        raise PermissionDenied("You don't have permission to access this TFM.")
+
+    @action(detail=False, methods=['get'], url_path='my')
+    def my_tfms(self, request):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='review')
+    def review(self, request, pk=None):
+        tfm = self.get_object()
+        user = request.user
 
         if user.role == User.TEACHER and not tfm.directors.filter(id=user.id).exists():
             return Response({'detail': 'You are not a director of this TFM.'}, status=403)
