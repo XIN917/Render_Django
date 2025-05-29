@@ -113,3 +113,9 @@ class UserPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["id"], self.student.id)
+
+    def test_user_can_delete_own_account(self):
+        self.client.force_login(self.student)
+        response = self.client.delete("/users/me/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(User.objects.filter(id=self.student.id).exists())
