@@ -29,7 +29,7 @@ class TFMViewSet(viewsets.ModelViewSet):
     filterset_class = TFMFilter
 
     def get_serializer_class(self):
-        if self.action in ['retrieve', 'list', 'my_tfms', 'pending_tfms']:
+        if self.action in ['retrieve', 'list', 'my_tfms', 'pending_tfms', 'available_tfms']:
             return TFMReadSerializer
         return TFMSerializer
 
@@ -122,8 +122,11 @@ class TFMViewSet(viewsets.ModelViewSet):
             'tfm_id': tfm.id,
         }, status=200)
     
-    @action(detail=False, methods=['get'], url_path='pending', permission_classes=[IsAdmin])
+    @action(detail=False, methods=['get'], url_path='pending')
     def pending_tfms(self, request):
+        if not request.user.is_staff and not request.user.is_superuser:
+            raise PermissionDenied("Only admins can access pending TFMs.")
+
         pending = TFM.objects.filter(status='pending')
         page = self.paginate_queryset(pending)
         if page is not None:
@@ -131,4 +134,18 @@ class TFMViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(pending, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='available')
+    def available_tfms(self, request):
+        if not request.user.is_staff and not request.user.is_superuser:
+            raise PermissionDenied("Only admins can access available TFMs.")
+
+        available = TFM.objects.filter(status='approved', tribunal__isnull=True)
+        page = self.paginate_queryset(available)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(available, many=True)
         return Response(serializer.data)

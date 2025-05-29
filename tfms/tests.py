@@ -5,6 +5,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 import tempfile
 
 from tfms.models import TFM
+from tribunals.models import Tribunal
+from slots.models import Slot
+from tracks.models import Track
+from semesters.models import Semester
+from datetime import time, timedelta, date
 
 User = get_user_model()
 
@@ -37,6 +42,47 @@ class TFMTestCase(APITestCase):
             status="pending"
         )
         self.tfm.directors.add(self.teacher)
+
+        # Required objects for available TFMs test
+        self.available_tfm = TFM.objects.create(
+            title="Available TFM",
+            description="Approved and no tribunal",
+            file=SimpleUploadedFile("available.pdf", b"Approved Content"),
+            author=self.student,
+            status="approved"
+        )
+        self.available_tfm.directors.add(self.teacher)
+
+        self.linked_tfm = TFM.objects.create(
+            title="Linked TFM",
+            description="Approved but with tribunal",
+            file=SimpleUploadedFile("linked.pdf", b"Linked Content"),
+            author=self.student,
+            status="approved"
+        )
+        self.linked_tfm.directors.add(self.teacher)
+
+        self.semester = Semester.objects.create(
+            name="Spring 2025", start_date=date(2025, 2, 1), end_date=date(2025, 6, 30),
+            int_presentation_date=date(2025, 6, 15), last_presentation_date=date(2025, 6, 20),
+            daily_start_time=time(8, 0), daily_end_time=time(18, 0),
+            pre_duration=timedelta(minutes=45), min_committees=3, max_committees=5
+        )
+
+        self.track = Track.objects.create(
+            title="Test Track",
+            semester=self.semester
+        )
+
+        self.slot = Slot.objects.create(
+            track=self.track, start_time=time(9, 0), end_time=time(10, 30),
+            room="A101", date=date(2025, 6, 17), max_tfms=2
+        )
+
+        Tribunal.objects.create(
+            tfm=self.linked_tfm,
+            slot=self.slot
+        )
 
     def test_student_upload(self):
         self.client.force_authenticate(user=self.student)
@@ -172,4 +218,40 @@ class TFMTestCase(APITestCase):
             "action": "approved", "comment": "Again"
         })
         self.assertEqual(response.status_code, 400)
+    
+    def test_pending_tfms(self):
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.get("/tfms/pending/")
+        self.assertEqual(response.status_code, 200)
+
+        titles = [item["title"] for item in response.data]
+        self.assertIn("Initial TFM", titles)         # from setUp, status='pending'
+        self.assertNotIn("Available TFM", titles)    # status='approved'
+        self.assertNotIn("Linked TFM", titles)       # status='approved'
+    
+    def test_pending_tfms_forbidden_for_non_admin(self):
+        self.client.force_authenticate(user=self.teacher)  # Not staff
+        response = self.client.get("/tfms/pending/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_available_tfms(self):
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.get("/tfms/available/")
+        self.assertEqual(response.status_code, 200)
+
+        titles = [item["title"] for item in response.data]
+        self.assertIn("Available TFM", titles)
+        self.assertNotIn("Linked TFM", titles)
+        self.assertNotIn("Initial TFM", titles)
+    
+    def test_available_tfms_forbidden_for_non_admin(self):
+        # Mark TFM as approved and unlinked from tribunal
+        self.tfm.status = "approved"
+        self.tfm.save()
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get("/tfms/available/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
