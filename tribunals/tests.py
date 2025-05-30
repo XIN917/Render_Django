@@ -455,3 +455,17 @@ class TribunalTests(APITestCase):
         available_ids = [t['id'] for t in resp.data]
         self.assertNotIn(tribunal.id, available_ids)
 
+    def test_patch_evaluation_allowed_for_member(self):
+        tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+        Committee.objects.create(tribunal=tribunal, user=self.president, role='president')
+        self.client.force_authenticate(user=self.president)
+        resp = self.client.patch(f"/tribunals/{tribunal.id}/", {"evaluation": "A+"}, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_patch_evaluation_forbidden_for_non_member(self):
+        tribunal = Tribunal.objects.create(tfm=self.tfm, slot=self.slot)
+        self.client.force_authenticate(user=self.student)  # student is not a committee member
+        resp = self.client.patch(f"/tribunals/{tribunal.id}/", {"evaluation": "A+"}, format='json')
+        self.assertEqual(resp.status_code, 403)
+        self.assertIn('not a member', resp.data['detail'].lower())
+

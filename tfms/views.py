@@ -35,10 +35,7 @@ class TFMViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            if self.request.user.role == User.STUDENT:
-                permission_classes = [permissions.IsAuthenticated, IsStudent]
-            else:
-                permission_classes = [permissions.IsAuthenticated, IsAdminOrTeacher]
+            prermission_classes = [permissions.IsAuthenticated]
         elif self.action == 'list':
             permission_classes = [permissions.IsAuthenticated, IsAdmin]
         elif self.action in ['my_tfms', 'retrieve', 'update', 'partial_update', 'destroy']:

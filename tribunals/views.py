@@ -32,7 +32,9 @@ class TribunalViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'ready']:
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        elif self.action in ['my_assignments', 'available', 'auto_assign', 'update', 'partial_update']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAdminUser()]
 
     def _get_user_assigned_tribunals(self, user):
         if isinstance(user, AnonymousUser):
@@ -142,3 +144,20 @@ class TribunalViewSet(viewsets.ModelViewSet):
             return Response({"detail": f"You have been assigned as {role}."})
         else:
             return Response(serializer.errors, status=400)
+
+    def _is_tribunal_member(self, user, tribunal):
+        return tribunal.committees.filter(user=user).exists()
+
+    def update(self, request, *args, **kwargs):
+        if 'evaluation' in request.data:
+            tribunal = self.get_object()
+            if not self._is_tribunal_member(request.user, tribunal):
+                return Response({'detail': 'You are not a member of this tribunal.'}, status=403)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if 'evaluation' in request.data:
+            tribunal = self.get_object()
+            if not self._is_tribunal_member(request.user, tribunal):
+                return Response({'detail': 'You are not a member of this tribunal.'}, status=403)
+        return super().partial_update(request, *args, **kwargs)

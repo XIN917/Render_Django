@@ -5,7 +5,6 @@ from datetime import time, timedelta, date
 from django.core.files.uploadedfile import SimpleUploadedFile
 import tempfile
 from django.core.exceptions import ValidationError
-from django.urls import reverse
 
 from slots.models import Slot
 from slots.serializers import SlotReadSerializer
