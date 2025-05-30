@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import TFM, TFMReview
 from users.serializers import UserSerializer
+from semesters.models import Semester
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -104,10 +106,24 @@ class TFMReadSerializer(serializers.ModelSerializer):
     author = UserSerializer()
     directors = UserSerializer(many=True)
     review = TFMReviewSerializer(read_only=True)
+    semester = serializers.SerializerMethodField()
 
     class Meta:
         model = TFM
         fields = [
             'id', 'title', 'description', 'file', 'attachment',
-            'created_at', 'status', 'author', 'directors', 'review',
+            'created_at', 'status', 'author', 'directors', 'review', 'semester',
         ]
+
+    def get_semester(self, obj):
+        # Try to get semester from related objects
+        try:
+            semester = obj.tribunal.slot.track.semester
+            if semester:
+                return str(semester)
+        except AttributeError:
+            pass
+        # If not assigned, return current semester by created_at
+        created = obj.created_at.date() if obj.created_at else timezone.now().date()
+        current = Semester.objects.filter(start_date__lte=created, end_date__gte=created).first()
+        return str(current) if current else None

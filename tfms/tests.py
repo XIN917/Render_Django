@@ -255,3 +255,17 @@ class TFMTestCase(APITestCase):
         response = self.client.get("/tfms/available/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_get_semester_from_tribunal(self):
+        # Linked TFM has a tribunal, so semester should be from the related objects
+        from tfms.serializers import TFMReadSerializer
+        serializer = TFMReadSerializer(instance=self.linked_tfm)
+        data = serializer.data
+        self.assertEqual(data['semester'], str(self.semester))
+
+    def test_get_semester_from_created_at(self):
+        # Available TFM has no tribunal, so semester should be inferred from created_at
+        from tfms.serializers import TFMReadSerializer
+        serializer = TFMReadSerializer(instance=self.available_tfm)
+        data = serializer.data
+        self.assertEqual(data['semester'], str(self.semester))
+
