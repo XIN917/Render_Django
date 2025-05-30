@@ -357,3 +357,101 @@ class TribunalTests(APITestCase):
         # Expect 403 Forbidden or 401 Unauthorized (depending on your permission settings)
         self.assertIn(response.status_code, [401, 403])
 
+    def test_available_tribunals_no_conflict_different_days(self):
+        """
+        Ensure tribunals at the same time but on different days are not considered conflicting.
+        """
+        # Set semester to include today
+        today = date.today()
+        self.semester.start_date = today - timedelta(days=1)
+        self.semester.end_date = today + timedelta(days=10)
+        self.semester.save()
+
+        # Create two slots at the same time but different days
+        slot1 = Slot.objects.create(
+            track=self.track, start_time=time(10, 0), end_time=time(10, 45),
+            room="A101", date=today, max_tfms=2
+        )
+        slot2 = Slot.objects.create(
+            track=self.track, start_time=time(10, 0), end_time=time(10, 45),
+            room="A101", date=today + timedelta(days=1), max_tfms=2
+        )
+        tfm1 = TFM.objects.create(title='TFM1', file=SimpleUploadedFile("tfm1.pdf", b"data"), author=self.student, status='pending')
+        tfm1.directors.set([self.director])
+        tfm2 = TFM.objects.create(title='TFM2', file=SimpleUploadedFile("tfm2.pdf", b"data"), author=self.student, status='pending')
+        tfm2.directors.set([self.director])
+        tribunal1 = Tribunal.objects.create(tfm=tfm1, slot=slot1)
+        tribunal2 = Tribunal.objects.create(tfm=tfm2, slot=slot2)
+        Committee.objects.create(tribunal=tribunal1, user=self.president, role='president')
+
+        self.client.force_authenticate(user=self.president)
+        resp = self.client.get("/tribunals/available/")
+        self.assertEqual(resp.status_code, 200)
+        # tribunal2 should be available since it's on a different day
+        available_ids = [t['id'] for t in resp.data]
+        self.assertIn(tribunal2.id, available_ids)
+        self.assertNotIn(tribunal1.id, available_ids)
+
+    def test_available_tribunals_conflict_same_day_and_time(self):
+        """
+        Ensure tribunals at the same time and same day are considered conflicting and not available.
+        """
+        today = date.today()
+        self.semester.start_date = today - timedelta(days=1)
+        self.semester.end_date = today + timedelta(days=10)
+        self.semester.save()
+
+        # Create two slots at the same time and same day
+        slot1 = Slot.objects.create(
+            track=self.track, start_time=time(10, 0), end_time=time(10, 45),
+            room="A101", date=today, max_tfms=2
+        )
+        slot2 = Slot.objects.create(
+            track=self.track, start_time=time(10, 0), end_time=time(10, 45),
+            room="A102", date=today, max_tfms=2
+        )
+        tfm1 = TFM.objects.create(title='TFM1', file=SimpleUploadedFile("tfm1.pdf", b"data"), author=self.student, status='pending')
+        tfm1.directors.set([self.director])
+        tfm2 = TFM.objects.create(title='TFM2', file=SimpleUploadedFile("tfm2.pdf", b"data"), author=self.student, status='pending')
+        tfm2.directors.set([self.director])
+        tribunal1 = Tribunal.objects.create(tfm=tfm1, slot=slot1)
+        tribunal2 = Tribunal.objects.create(tfm=tfm2, slot=slot2)
+        Committee.objects.create(tribunal=tribunal1, user=self.president, role='president')
+
+        self.client.force_authenticate(user=self.president)
+        resp = self.client.get("/tribunals/available/")
+        self.assertEqual(resp.status_code, 200)
+        # tribunal2 should NOT be available since it's a conflict (same day and time)
+        available_ids = [t['id'] for t in resp.data]
+        self.assertNotIn(tribunal2.id, available_ids)
+        self.assertNotIn(tribunal1.id, available_ids)
+
+    def test_available_tribunals_excludes_full(self):
+        """
+        Ensure a tribunal that is full does not appear in the available list.
+        """
+        today = date.today()
+        self.semester.start_date = today - timedelta(days=1)
+        self.semester.end_date = today + timedelta(days=10)
+        self.semester.save()
+
+        slot = Slot.objects.create(
+            track=self.track, start_time=time(11, 0), end_time=time(11, 45),
+            room="A201", date=today, max_tfms=1
+        )
+        tfm = TFM.objects.create(title='Full TFM', file=SimpleUploadedFile("full.pdf", b"data"), author=self.student, status='pending')
+        tfm.directors.set([self.director])
+        tribunal = Tribunal.objects.create(tfm=tfm, slot=slot)
+        # Fill the tribunal to max_committees
+        Committee.objects.create(tribunal=tribunal, user=self.president, role='president')
+        Committee.objects.create(tribunal=tribunal, user=self.secretary, role='secretary')
+        Committee.objects.create(tribunal=tribunal, user=self.vocal1, role='vocal')
+        Committee.objects.create(tribunal=tribunal, user=self.vocal2, role='vocal')
+        Committee.objects.create(tribunal=tribunal, user=self.admin, role='vocal')
+
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.get("/tribunals/available/")
+        self.assertEqual(resp.status_code, 200)
+        available_ids = [t['id'] for t in resp.data]
+        self.assertNotIn(tribunal.id, available_ids)
+

@@ -73,11 +73,16 @@ class TribunalViewSet(viewsets.ModelViewSet):
 
         def no_conflict(tribunal):
             slot = tribunal.slot
-            start_dt = datetime.combine(date.today(), slot.start_time) + (
+            tribunal_date = slot.date if hasattr(slot, 'date') else date.today()
+            start_dt = datetime.combine(tribunal_date, slot.start_time) + (
                 (tribunal.index - 1) * slot.track.semester.pre_duration
             )
             end_dt = start_dt + slot.track.semester.pre_duration
-            return all(not (start_dt < usr_end and end_dt > usr_start) for usr_start, usr_end in user_tribunal_times)
+            # Only check for conflicts on the same day
+            return all(
+                tribunal_date != usr_start.date() or not (start_dt < usr_end and end_dt > usr_start)
+                for usr_start, usr_end in user_tribunal_times
+            )
 
         # Only return tribunals from the current semester
         current_semester = Semester.objects.filter(
@@ -92,9 +97,11 @@ class TribunalViewSet(viewsets.ModelViewSet):
             slot__track__semester=current_semester
         )
 
+        # Exclude tribunals the user is already assigned to
+        assigned_tribunal_ids = set(t.id for t in assigned_tribunals)
         available_tribunals = [
             tribunal for tribunal in all_tribunals
-            if not tribunal.is_full() and no_conflict(tribunal)
+            if tribunal.id not in assigned_tribunal_ids and not tribunal.is_full() and no_conflict(tribunal)
         ]
 
         serializer = self.get_serializer(available_tribunals, many=True)
