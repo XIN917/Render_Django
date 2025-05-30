@@ -5,6 +5,7 @@ from datetime import time, timedelta, date
 from django.core.files.uploadedfile import SimpleUploadedFile
 import tempfile
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 from slots.models import Slot
 from slots.serializers import SlotReadSerializer
@@ -35,10 +36,11 @@ class SlotTests(APITestCase):
 
         self.client.login(email="admin@example.com", password="adminpass")
 
+        # Set semester start_date and end_date to include today (May 30, 2025)
         self.semester = Semester.objects.create(
             name="Test Semester",
-            start_date=date(2025, 1, 1),
-            end_date=date(2025, 6, 30),
+            start_date=date(2025, 5, 1),  # <-- changed
+            end_date=date(2025, 6, 30),   # <-- changed
             int_presentation_date=date(2025, 6, 15),
             last_presentation_date=date(2025, 6, 20),
             daily_start_time=time(9, 0),
@@ -233,3 +235,82 @@ class SlotTests(APITestCase):
         with self.assertRaises(ValidationError) as ctx:
             self.slot.clean()
         self.assertIn("Slot does not have enough time to accommodate all TFMs", str(ctx.exception))
+
+    def test_available_slots_api_returns_only_not_full(self):
+        # Make self.slot full (it already has 1 tribunal and max_tfms=2)
+        self.slot.max_tfms = 1
+        self.slot.save()
+        # Do NOT add another Tribunal, as it would overfill and raise ValueError
+        # Create another available slot
+        slot2 = Slot.objects.create(
+            track=self.track,
+            start_time=time(12, 0),
+            end_time=time(13, 0),
+            room="A2",
+            date=date(2025, 6, 18),
+            max_tfms=2
+        )
+        url = '/slots/available/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        slot_ids = [slot['id'] for slot in response.data]
+        self.assertIn(slot2.id, slot_ids)
+        self.assertNotIn(self.slot.id, slot_ids)
+
+    def test_available_slots_api_empty_when_all_full(self):
+        # Make self.slot full (it already has 1 tribunal and max_tfms=2)
+        self.slot.max_tfms = 1
+        self.slot.save()
+        # Do NOT add another Tribunal, as it would overfill and raise ValueError
+        url = '/slots/available/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+    def test_available_slots_api_all_available(self):
+        # Remove tribunals so all slots are available
+        Tribunal.objects.all().delete()
+        url = '/slots/available/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        slot_ids = [slot['id'] for slot in response.data]
+        self.assertIn(self.slot.id, slot_ids)
+
+    def test_available_slots_api_only_current_semester(self):
+        # Create a slot in a different semester (not current)
+        other_semester = Semester.objects.create(
+            name="Other Semester",
+            start_date=date(2025, 9, 1),
+            end_date=date(2025, 12, 31),
+            int_presentation_date=date(2025, 11, 15),
+            last_presentation_date=date(2025, 11, 30),
+            daily_start_time=time(9, 0),
+            daily_end_time=time(18, 0),
+            pre_duration=timedelta(minutes=45),
+            min_committees=3,
+            max_committees=5,
+        )
+        other_track = Track.objects.create(title="Other Track", semester=other_semester)
+        slot_other = Slot.objects.create(
+            track=other_track,
+            start_time=time(12, 0),
+            end_time=time(13, 0),
+            room="B1",
+            date=date(2025, 10, 10),  # <-- ensure this is in other_semester
+            max_tfms=2
+        )
+        url = '/slots/available/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        slot_ids = [slot['id'] for slot in response.data]
+        # Only slots from the current semester (May 1 - June 30, 2025) should be present
+        self.assertIn(self.slot.id, slot_ids)
+        self.assertNotIn(slot_other.id, slot_ids)
+
+    def test_available_slots_api_empty_when_no_current_semester(self):
+        # Move today outside any semester's start_date and end_date
+        Semester.objects.all().update(start_date=date(2024, 1, 1), end_date=date(2024, 1, 31))
+        url = '/slots/available/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
