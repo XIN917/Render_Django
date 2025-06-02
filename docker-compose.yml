@@ -18,5 +18,5 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: 'C:/UB/4th/TFG/media'
+      device: ${MINIO_VOLUME_PATH}
       o: bind
