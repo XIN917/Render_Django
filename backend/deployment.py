@@ -22,7 +22,6 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     'https://react-next-swart-zeta.vercel.app',
-    'https://main.dq2ikwq61x8m0.amplifyapp.com/'
 ]
 
 DATABASES = {
