@@ -3,8 +3,19 @@ import dj_database_url
 from .settings import *
 from .settings import BASE_DIR
 
-ALLOWED_HOSTS = [os.environ.get('RENDER_EXTERNAL_HOSTNAME')]
-CSRF_TRUSTED_ORIGINS = ['https://' + os.environ.get('RENDER_EXTERNAL_HOSTNAME')]
+RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+
+ALLOWED_HOSTS = [
+    RENDER_HOST,
+    'main.dq2ikwq61x8m0.amplifyapp.com',
+    'react-next-swart-zeta.vercel.app',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    f'https://{RENDER_HOST}',
+    'https://main.dq2ikwq61x8m0.amplifyapp.com',
+    'https://react-next-swart-zeta.vercel.app',
+]
 
 DEBUG = False
 SECRET_KEY = os.environ.get('SECRET_KEY')
@@ -21,7 +32,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'https://react-next-swart-zeta.vercel.app'
+    'https://react-next-swart-zeta.vercel.app',
+    'https://main.dq2ikwq61x8m0.amplifyapp.com',
 ]
 
 DATABASES = {
@@ -37,4 +49,5 @@ AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "eu-north-1")
 
+STATIC_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/static/"
 MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
