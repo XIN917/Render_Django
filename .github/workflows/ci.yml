@@ -72,7 +72,7 @@ jobs:
           chmod +x mc
           ./mc alias set local http://localhost:9000 minio minio123
           ./mc mb local/media || true
-          ./mc policy set public local/media
+          ./mc anonymous set download local/media
 
       - name: Run migrations
         run: |
