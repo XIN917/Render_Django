@@ -4,14 +4,18 @@ from tracks.models import Track
 from django.core.exceptions import ValidationError
 
 class Slot(models.Model):
-    date = models.DateField()  # The specific day this slot is scheduled
-
+    date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
     max_tfms = models.PositiveIntegerField(default=2)
     room = models.CharField(max_length=100)
 
     track = models.ForeignKey('tracks.Track', on_delete=models.PROTECT, related_name='slots')
+    pre_duration = models.DurationField(null=True, blank=True)  # optional override
+
+    @property
+    def effective_pre_duration(self):
+        return self.pre_duration or self.track.semester.pre_duration
 
     def is_full(self):
         return self.tribunals.count() >= self.max_tfms
@@ -39,7 +43,7 @@ class Slot(models.Model):
             raise ValidationError("Slot end time must be after the start time.")
 
         # Check if total duration can fit all TFMs
-        duration = semester.pre_duration
+        duration = self.effective_pre_duration
         total_required_time = duration * self.max_tfms
         actual_slot_seconds = (
             (self.end_time.hour * 60 + self.end_time.minute) -

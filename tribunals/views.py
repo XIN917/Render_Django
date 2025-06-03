@@ -5,6 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from committees.serializers import AssignCommitteeRoleSerializer
 from committees.models import Committee
+from datetime import datetime, date
+from semesters.models import Semester
+from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
 
 from django_filters import rest_framework as filters
 
@@ -21,31 +25,101 @@ class TribunalViewSet(viewsets.ModelViewSet):
     filterset_class = TribunalFilter  # Enable ?semester=ID
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve', 'available', 'ready']:
+        if self.action in ['list', 'retrieve', 'available', 'ready', 'my_assignments']:
             return TribunalReadSerializer
         return TribunalSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'available', 'ready']:
+        if self.action in ['list', 'retrieve', 'ready']:
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        elif self.action in ['my_assignments', 'available', 'auto_assign', 'update', 'partial_update']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAdminUser()]
+
+    def _get_user_assigned_tribunals(self, user):
+        if isinstance(user, AnonymousUser):
+            return Tribunal.objects.none()  # Return empty QuerySet
+
+        return Tribunal.objects.filter(
+            Q(committees__user=user) |
+            Q(tfm__author=user)
+        ).distinct().select_related(
+            'slot__track__semester', 'tfm'
+        ).prefetch_related('committees__user')
+
+    @action(detail=False, methods=['get'])
+    def my_assignments(self, request):
+        user = request.user
+        semester = request.query_params.get("semester")
+
+        tribunals = self._get_user_assigned_tribunals(user)
+        if semester:
+            tribunals = tribunals.filter(slot__track__semester=semester)
+
+        serializer = self.get_serializer(tribunals, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def available(self, request):
-        """
-        Returns tribunals that are NOT full.
-        """
-        tribunals = Tribunal.objects.all()
-        not_full = [tribunal for tribunal in tribunals if not tribunal.is_full()]
-        serializer = self.get_serializer(not_full, many=True)
+        user = request.user
+        assigned_tribunals = self._get_user_assigned_tribunals(user)
+
+        user_tribunal_times = []
+        for tribunal in assigned_tribunals:
+            slot = tribunal.slot
+            start_dt = datetime.combine(date.today(), slot.start_time) + (
+                (tribunal.index - 1) * slot.track.semester.pre_duration
+            )
+            end_dt = start_dt + slot.track.semester.pre_duration
+            user_tribunal_times.append((start_dt, end_dt))
+
+        def no_conflict(tribunal):
+            slot = tribunal.slot
+            tribunal_date = slot.date if hasattr(slot, 'date') else date.today()
+            start_dt = datetime.combine(tribunal_date, slot.start_time) + (
+                (tribunal.index - 1) * slot.track.semester.pre_duration
+            )
+            end_dt = start_dt + slot.track.semester.pre_duration
+            # Only check for conflicts on the same day
+            return all(
+                tribunal_date != usr_start.date() or not (start_dt < usr_end and end_dt > usr_start)
+                for usr_start, usr_end in user_tribunal_times
+            )
+
+        # Only return tribunals from the current semester
+        current_semester = Semester.objects.filter(
+            start_date__lte=date.today(),
+            end_date__gte=date.today()
+        ).first()
+
+        if not current_semester:
+            return Response([], status=200)  # Or optionally return a message
+
+        all_tribunals = Tribunal.objects.select_related('slot__track__semester').filter(
+            slot__track__semester=current_semester
+        )
+
+        # Exclude tribunals the user is already assigned to
+        assigned_tribunal_ids = set(t.id for t in assigned_tribunals)
+        available_tribunals = [
+            tribunal for tribunal in all_tribunals
+            if tribunal.id not in assigned_tribunal_ids and not tribunal.is_full() and no_conflict(tribunal)
+        ]
+
+        serializer = self.get_serializer(available_tribunals, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def ready(self, request):
         """
-        Returns tribunals that are ready (>=3 committees).
+        Returns tribunals that are ready (>=3 committees), optionally filtered by semester.
         """
-        tribunals = Tribunal.objects.all()
+        semester = request.query_params.get("semester")
+        tribunals = Tribunal.objects.select_related("slot__track__semester").all()
+
+        if semester:
+            tribunals = tribunals.filter(slot__track__semester=semester)
+
         ready = [tribunal for tribunal in tribunals if tribunal.is_ready()]
         serializer = self.get_serializer(ready, many=True)
         return Response(serializer.data)
@@ -70,3 +144,20 @@ class TribunalViewSet(viewsets.ModelViewSet):
             return Response({"detail": f"You have been assigned as {role}."})
         else:
             return Response(serializer.errors, status=400)
+
+    def _is_tribunal_member(self, user, tribunal):
+        return tribunal.committees.filter(user=user).exists()
+
+    def update(self, request, *args, **kwargs):
+        if 'evaluation' in request.data:
+            tribunal = self.get_object()
+            if not self._is_tribunal_member(request.user, tribunal):
+                return Response({'detail': 'You are not a member of this tribunal.'}, status=403)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if 'evaluation' in request.data:
+            tribunal = self.get_object()
+            if not self._is_tribunal_member(request.user, tribunal):
+                return Response({'detail': 'You are not a member of this tribunal.'}, status=403)
+        return super().partial_update(request, *args, **kwargs)

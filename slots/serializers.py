@@ -53,7 +53,7 @@ class SlotSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("This time slot overlaps with another slot in the same room.")
 
         # Check if time fits max TFMs
-        duration = semester.pre_duration
+        duration = data.get('pre_duration') or track.semester.pre_duration
         max_tfms = data.get('max_tfms', self.instance.max_tfms if self.instance else 2)
         total_required_seconds = duration.total_seconds() * max_tfms
         actual_slot_seconds = (
@@ -99,7 +99,7 @@ class SlotReadSerializer(serializers.ModelSerializer):
         return obj.is_full()
 
     def get_pre_duration(self, obj):
-        duration = obj.track.semester.pre_duration
+        duration = obj.effective_pre_duration
         total_seconds = int(duration.total_seconds())
         hours, remainder = divmod(total_seconds, 3600)
         minutes, _ = divmod(remainder, 60)

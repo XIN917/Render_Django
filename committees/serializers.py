@@ -41,7 +41,4 @@ class AssignCommitteeRoleSerializer(serializers.ModelSerializer):
             if role_taken_qs.exists():
                 raise serializers.ValidationError(f"The role '{role}' is already taken in this tribunal.")
 
-        if user.is_superuser:
-            raise serializers.ValidationError("Superusers cannot be assigned to tribunals.")
-
         return data

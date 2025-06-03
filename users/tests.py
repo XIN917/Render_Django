@@ -92,3 +92,30 @@ class UserPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.student.refresh_from_db()
         self.assertEqual(self.student.full_name, "Updated Student")
+
+    def test_admin_can_filter_by_teacher_role(self):
+        self.client.force_login(self.admin)
+        response = self.client.get("/users/?role=teacher")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(u["email"] == self.teacher.email for u in response.data))
+
+    def test_cannot_delete_superuser(self):
+        superuser = User.objects.create_superuser(
+            email="root@example.com", full_name="Root", password="rootpass"
+        )
+        self.client.force_login(self.admin)
+        response = self.client.delete(f"/users/{superuser.id}/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_student_sees_only_self_when_no_role_filter(self):
+        self.client.force_login(self.student)
+        response = self.client.get("/users/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.student.id)
+
+    def test_user_can_delete_own_account(self):
+        self.client.force_login(self.student)
+        response = self.client.delete("/users/me/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(User.objects.filter(id=self.student.id).exists())
