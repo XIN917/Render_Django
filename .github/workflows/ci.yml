@@ -20,6 +20,15 @@ jobs:
         ports:
           - 5432:5432
 
+      minio:
+        image: bitnami/minio:latest
+        ports:
+          - "9000:9000"
+          - "9001:9001"
+        env:
+          MINIO_ACCESS_KEY: minio
+          MINIO_SECRET_KEY: minio123
+          
     env:
       DEBUG: true
       SECRET_KEY: django-insecure-J8VliX3EyI4hak5LuS6YW9bojYdIkKT1UvVHt3sQ-FkvyUJHTtw_9S7EHXlW3nAtAvw
@@ -31,32 +40,21 @@ jobs:
       MINIO_ACCESS_URL: http://localhost:9000
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: 🧪 Install dependencies
+      - name: Install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
 
-      - name: 🧱 Install Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose version
-
-      - name: ▶️ Start Docker services (MinIO)
-        run: |
-          docker-compose up -d
-          sleep 10  # allow services to initialize
-
-      - name: ⏳ Wait for MinIO to be ready
+      - name: Wait for MinIO to be ready
         run: |
           for i in {1..10}; do
             if curl -s http://localhost:9000/minio/health/live; then
@@ -66,13 +64,21 @@ jobs:
             echo "Waiting for MinIO..."
             sleep 5
           done
+      
+      - name:  Init MinIO bucket
+        run: |
+          curl https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          ./mc alias set local http://localhost:9000 minio minio123
+          ./mc mb local/media || true  # Create bucket if it doesn't exist
+          ./mc policy set public local/media
 
-      - name: 🧪 Run migrations
+      - name: Run migrations
         run: |
           source venv/bin/activate
           python manage.py migrate
 
-      - name: ✅ Run tests
+      - name: Run tests
         run: |
           source venv/bin/activate
           python manage.py test
