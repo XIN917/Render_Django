@@ -49,4 +49,37 @@ class SemesterSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'last_presentation_date': 'Last presentation date cannot be on a weekend.'
                 })
+
+        # Check all associated slots are within the new presentation window (on update)
+        instance = getattr(self, 'instance', None)
+        if instance and int_presentation_date and last_presentation_date:
+            from slots.models import Slot
+            slots = Slot.objects.filter(track__semester=instance)
+            before = [slot.date for slot in slots if slot.date < int_presentation_date]
+            after = [slot.date for slot in slots if slot.date > last_presentation_date]
+            errors = {}
+            if before:
+                before_str = [d.strftime('%Y-%m-%d') for d in sorted(set(before))]
+                errors['int_presentation_date'] = (
+                    f"Cannot set initial presentation date to {int_presentation_date.strftime('%Y-%m-%d')}: "
+                    f"slot(s) exist before this date: {before_str}"
+                )
+            if after:
+                after_str = [d.strftime('%Y-%m-%d') for d in sorted(set(after))]
+                errors['last_presentation_date'] = (
+                    f"Cannot set last presentation date to {last_presentation_date.strftime('%Y-%m-%d')}: "
+                    f"slot(s) exist after this date: {after_str}"
+                )
+            if errors:
+                raise serializers.ValidationError(errors)
         return data
+
+    def validate_delete(self, instance):
+        # Prevent deletion if there are tracks associated
+        tracks = instance.track_set.all()
+        if tracks.exists():
+            track_names = [track.title for track in tracks]
+            raise serializers.ValidationError(
+                {'non_field_errors': f'Cannot delete semester: tracks are still associated with this semester: {track_names}'}
+            )
+        return instance

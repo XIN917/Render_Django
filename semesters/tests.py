@@ -6,6 +6,7 @@ from .models import Semester
 from django.core.exceptions import ValidationError
 from datetime import date, time, timedelta
 from .serializers import SemesterSerializer
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -176,3 +177,42 @@ class SemesterTests(TestCase):
         serializer = SemesterSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertIn("last_presentation_date", serializer.errors)
+
+    def test_serializer_blocks_update_if_slots_outside_new_presentation_window(self):
+        # Create a slot on a date before the current int_presentation_date
+        from slots.models import Slot
+        track = self.semester.track_set.create(title="Track 1")
+        slot = Slot.objects.create(
+            date=date(2025, 5, 15),  # Before int_presentation_date
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            max_tfms=2,
+            room="A101",
+            track=track
+        )
+        serializer = SemesterSerializer(instance=self.semester, data={
+            "name": self.semester.name,
+            "start_date": self.semester.start_date,
+            "end_date": date(2025, 5, 9),  # Friday, not a weekend
+            "int_presentation_date": date(2025, 5, 19),  # Monday, not a weekend, after slot
+            "last_presentation_date": self.semester.last_presentation_date,
+            "min_committees": self.semester.min_committees,
+            "max_committees": self.semester.max_committees
+        }, partial=True)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("int_presentation_date", serializer.errors)
+        self.assertIn("2025-05-15", str(serializer.errors["int_presentation_date"]))
+
+    def test_serializer_blocks_delete_if_tracks_exist(self):
+        track = self.semester.track_set.create(title="Track 1")
+        serializer = SemesterSerializer()
+        with self.assertRaises(serializers.ValidationError) as ctx:
+            serializer.validate_delete(self.semester)
+        self.assertIn("Track 1", str(ctx.exception))
+
+    def test_serializer_allows_delete_if_no_tracks(self):
+        serializer = SemesterSerializer()
+        # Should not raise
+        result = serializer.validate_delete(self.semester)
+        self.assertEqual(result, self.semester)
+
