@@ -67,14 +67,5 @@ class CurrentUserView(APIView):
 
     def delete(self, request):
         user = request.user
-        try:
-            user.delete()
-        except Exception as e:
-            from django.db.models.deletion import ProtectedError
-            if isinstance(e, ProtectedError):
-                return Response(
-                    {"detail": "Cannot delete user because they are referenced by a TFM assigned to a Tribunal. Remove or reassign related objects first."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            raise
+        user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
