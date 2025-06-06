@@ -42,8 +42,13 @@ class Tribunal(models.Model):
         return self.slot.track.semester
 
     def is_ready(self):
-        """Check if the tribunal is ready (has enough committees)."""
-        return self.committees.count() >= self.get_semester().min_committees
+        """Check if the tribunal is ready (has at least one president, one secretary, and one vocal)."""
+        roles = self.committees.values_list('role', flat=True)
+        return (
+            'president' in roles and
+            'secretary' in roles and
+            'vocal' in roles
+        )
 
     def is_full(self):
         """Check if the tribunal is full."""

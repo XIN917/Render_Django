@@ -17,9 +17,9 @@ class Command(BaseCommand):
             {
                 "name": "2024-2025 Spring",
                 "start_date": date(2025, 2, 10),
-                "end_date": date(2025, 7, 10),
-                "int_presentation_date": date(2025, 6, 23),
-                "last_presentation_date": date(2025, 6, 25),
+                "end_date": date(2025, 7, 11),
+                "int_presentation_date": date(2025, 7, 7),
+                "last_presentation_date": date(2025, 7, 9),
             },
             {
                 "name": "2025-2026 Fall",
@@ -49,6 +49,6 @@ class Command(BaseCommand):
 
         if semesters_to_create:
             Semester.objects.bulk_create(semesters_to_create)
-            self.stdout.write(self.style.SUCCESS(f"✅ Created {len(semesters_to_create)} semesters"))
+            self.stdout.write(self.style.SUCCESS(f"Created {len(semesters_to_create)} semesters"))
         else:
             self.stdout.write("⚠️ All semesters already exist")

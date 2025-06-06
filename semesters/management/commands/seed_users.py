@@ -8,9 +8,24 @@ class Command(BaseCommand):
     help = "Seed default admin, teachers, and students"
 
     def handle(self, *args, **kwargs):
+        created_teachers = 0
+        created_students = 0
+
+        institutions = list(Institution.objects.all())
+        if not institutions:
+            self.stdout.write(self.style.WARNING("⚠️ No institutions found. Please create at least one institution before seeding users."))
+            return
+
+        # Select the second institution (UB expected)
+        if len(institutions) >= 2:
+            admin_institution = institutions[1]
+        else:
+            self.stdout.write(self.style.WARNING("⚠️ Less than 2 institutions found. Admin won't be assigned an institution."))
+            admin_institution = None
+
         # Admin user
         if not User.objects.filter(email="admin@email.com").exists():
-            User.objects.create_superuser(
+            admin = User.objects.create_superuser(
                 email="admin@email.com",
                 full_name="Admin User",
                 password="admin1234",
@@ -18,15 +33,13 @@ class Command(BaseCommand):
                 is_staff=True,
                 is_superuser=True,
             )
+            if admin_institution:
+                profile, _ = admin.profile.__class__.objects.get_or_create(user=admin)
+                profile.institution = admin_institution
+                profile.save()
             self.stdout.write(self.style.SUCCESS("✅ Created admin user"))
         else:
             self.stdout.write("⚠️ Admin user already exists")
-
-        # Get all institutions to assign teachers
-        institutions = list(Institution.objects.all())
-        if not institutions:
-            self.stdout.write(self.style.WARNING("⚠️ No institutions found. Please create at least one institution before seeding teachers."))
-            return
 
         # Teachers
         for i in range(1, 21):
@@ -38,16 +51,14 @@ class Command(BaseCommand):
                     role=User.TEACHER,
                     password="pass1234"
                 )
-                # Assign institution to profile (random or cycle)
                 institution = institutions[(i - 1) % len(institutions)]
-                profile, created = user.profile.__class__.objects.get_or_create(user=user)
+                profile, _ = user.profile.__class__.objects.get_or_create(user=user)
                 profile.institution = institution
                 profile.save()
-
-                self.stdout.write(self.style.SUCCESS(f"✅ Created {email} with institution {institution.name}"))
+                created_teachers += 1
 
         # Students
-        for i in range(1, 21):
+        for i in range(1, 51):
             email = f"student{i}@example.com"
             if not User.objects.filter(email=email).exists():
                 User.objects.create_user(
@@ -56,4 +67,8 @@ class Command(BaseCommand):
                     role=User.STUDENT,
                     password="pass1234"
                 )
-                self.stdout.write(self.style.SUCCESS(f"✅ Created {email}"))
+                created_students += 1
+
+        # Final summary
+        self.stdout.write(self.style.SUCCESS(f"✅ Created {created_teachers} teachers"))
+        self.stdout.write(self.style.SUCCESS(f"✅ Created {created_students} students"))

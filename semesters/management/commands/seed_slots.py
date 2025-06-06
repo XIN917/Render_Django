@@ -9,9 +9,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         base_times = [(10 + i, 0) for i in range(11)]  # 10:00 to 20:00
-        room_prefixes = ['A', 'B', 'C']
-        room_numbers = [101, 102, 103]
-        rooms = [f"{p}{n}" for p in room_prefixes for n in room_numbers]
+        room_prefixes = ['A', 'B', 'C', 'D', 'E']
+        room_numbers = [101, 102, 103, 201, 202, 203]
+        all_rooms = [f"{p}{n}" for p in room_prefixes for n in room_numbers]
 
         semester_names = [
             "2024-2025 Fall",
@@ -26,10 +26,21 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"❌ Semester '{semester_name}' not found."))
                 continue
 
-            tracks = Track.objects.filter(semester=semester)
+            tracks = list(Track.objects.filter(semester=semester))
+            if not tracks:
+                self.stdout.write(self.style.WARNING(f"⚠️ No tracks found for {semester_name}"))
+                continue
+
+            # Assign rooms to tracks in a rotating way
+            track_room_map = {}
+            for i, track in enumerate(tracks):
+                track_rooms = all_rooms[i::len(tracks)]
+                track_room_map[track.id] = track_rooms
+
             presentation_days = (semester.last_presentation_date - semester.int_presentation_date).days + 1
 
             for track in tracks:
+                track_rooms = track_room_map[track.id]
                 slots_to_create = []
 
                 for day_offset in range(presentation_days):
@@ -43,7 +54,6 @@ class Command(BaseCommand):
                         start_dt = datetime.combine(slot_date, start)
                         end_limit_dt = datetime.combine(slot_date, semester.daily_end_time)
 
-                        # Calculate max_tfms (capped at 4)
                         calculated_max = (end_limit_dt - start_dt) // duration
                         max_tfms = min(calculated_max, 4)
                         if max_tfms <= 0:
@@ -52,19 +62,19 @@ class Command(BaseCommand):
                         end_dt = start_dt + duration * max_tfms
                         end = end_dt.time()
 
-                        room = rooms[i % len(rooms)]
+                        # Room selection from assigned subset
+                        room = track_rooms[i % len(track_rooms)]
 
-                        # Overlap check
+                        # Check for overlapping slots
                         overlapping = Slot.objects.filter(
                             date=slot_date,
                             room=room,
                             start_time__lt=end,
                             end_time__gt=start
                         )
-                        if overlapping.exists():
+                        if overlapping.exists() or start >= end:
                             continue
 
-                        # Append slot
                         slots_to_create.append(Slot(
                             track=track,
                             date=slot_date,
