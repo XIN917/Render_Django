@@ -21,6 +21,6 @@ class Command(BaseCommand):
 
         if institutions_to_create:
             Institution.objects.bulk_create(institutions_to_create)
-            self.stdout.write(self.style.SUCCESS(f"✅ Created {len(institutions_to_create)} institutions"))
+            self.stdout.write(self.style.SUCCESS(f"Created {len(institutions_to_create)} institutions"))
         else:
             self.stdout.write("⚠️ All institutions already exist")

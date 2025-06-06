@@ -8,25 +8,25 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         semesters = {
             "2024-2025 Fall": [
-                "Data Engineering Fundamentals",
-                "Mobile App Development",
-                "Smart City Infrastructures",
-                "Quantum Cryptography",
-                "Ethics in Artificial Intelligence",
+                "T1: Data Engineering Fundamentals",
+                "T2: Mobile App Development",
+                "T3: Smart City Infrastructures",
+                "T4: Quantum Cryptography",
+                "T5: Ethics in Artificial Intelligence",
             ],
             "2024-2025 Spring": [
-                "AI and Machine Learning",
-                "Health Informatics",
-                "Blockchain Applications",
-                "Sustainable Technology",
-                "Cybersecurity and Privacy",
+                "T1: AI and Machine Learning",
+                "T2: Health Informatics",
+                "T3: Blockchain Applications",
+                "T4: Sustainable Technology",
+                "T5: Cybersecurity and Privacy",
             ],
             "2025-2026 Fall": [
-                "Augmented Reality Design",
-                "Human-Robot Interaction",
-                "Energy-Efficient Computing",
-                "Digital Transformation in Industry",
-                "Autonomous Systems Engineering",
+                "T1: Augmented Reality Design",
+                "T2: Human-Robot Interaction",
+                "T3: Energy-Efficient Computing",
+                "T4: Digital Transformation in Industry",
+                "T5: Autonomous Systems Engineering",
             ],
         }
 
@@ -45,6 +45,6 @@ class Command(BaseCommand):
 
             if tracks_to_create:
                 Track.objects.bulk_create(tracks_to_create)
-                self.stdout.write(self.style.SUCCESS(f"✅ Created {len(tracks_to_create)} tracks for {semester_name}"))
+                self.stdout.write(self.style.SUCCESS(f"Created {len(tracks_to_create)} tracks for {semester_name}"))
             else:
                 self.stdout.write(f"⚠️ All tracks for {semester_name} already exist")
