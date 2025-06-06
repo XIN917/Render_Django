@@ -216,3 +216,36 @@ class SemesterTests(TestCase):
         result = serializer.validate_delete(self.semester)
         self.assertEqual(result, self.semester)
 
+    def test_delete_semester_blocked_by_track(self):
+        """
+        Deleting a semester referenced by a Track should return 400 with a user-friendly error message.
+        """
+        from tracks.models import Track
+        self.client.force_authenticate(self.admin)
+        # Create a track referencing self.semester
+        Track.objects.create(title="Track 1", semester=self.semester)
+        response = self.client.delete(f"/semesters/{self.semester.id}/")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Cannot delete semester", response.data.get("detail", ""))
+        # The semester should still exist
+        self.assertTrue(Semester.objects.filter(id=self.semester.id).exists())
+
+    def test_delete_semester_not_referenced_by_track(self):
+        """
+        Deleting a semester not referenced by any Track should succeed and remove the semester.
+        """
+        self.client.force_authenticate(self.admin)
+        # Create a new semester not referenced by any track
+        semester2 = Semester.objects.create(
+            name="Fall 2025",
+            start_date=date(2025, 8, 1),
+            end_date=date(2025, 12, 10),
+            int_presentation_date=date(2025, 12, 19),
+            last_presentation_date=date(2025, 12, 23),
+            min_committees=3,
+            max_committees=5
+        )
+        response = self.client.delete(f"/semesters/{semester2.id}/")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Semester.objects.filter(id=semester2.id).exists())
+

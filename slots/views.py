@@ -39,3 +39,13 @@ class SlotViewSet(viewsets.ModelViewSet):
         available_slots = [slot for slot in self.get_queryset().filter(track__semester=current_semester) if not slot.is_full()]
         serializer = SlotReadSerializer(available_slots, many=True)
         return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        from django.db.models.deletion import ProtectedError
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Cannot delete slot: it is still referenced by a Tribunal."},
+                status=400
+            )

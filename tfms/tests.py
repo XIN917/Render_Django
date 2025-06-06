@@ -269,3 +269,24 @@ class TFMTestCase(APITestCase):
         data = serializer.data
         self.assertEqual(data['semester'], str(self.semester))
 
+    def test_delete_tfm_blocked_by_tribunal(self):
+        """Deleting a TFM referenced by a Tribunal should return a user-friendly error message."""
+        self.client.force_authenticate(user=self.admin)
+        # self.linked_tfm is referenced by a Tribunal in setUp
+        response = self.client.delete(f"/tfms/{self.linked_tfm.id}/")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Cannot delete", response.data.get("detail", ""))
+        self.assertIn("tribunal", response.data.get("detail", "").lower())
+        # Should not leak all related objects, just a summary
+        self.assertLess(len(response.data.get("detail", "")), 300)
+
+    def test_delete_tfm_not_referenced_by_tribunal(self):
+        """
+        Deleting a TFM not referenced by a Tribunal should succeed and remove the TFM.
+        """
+        self.client.force_authenticate(user=self.admin)
+        # self.tfm is not referenced by any Tribunal
+        response = self.client.delete(f"/tfms/{self.tfm.id}/")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(TFM.objects.filter(id=self.tfm.id).exists())
+
