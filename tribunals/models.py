@@ -7,9 +7,10 @@ from committees.models import Committee
 class Tribunal(models.Model):
     tfm = models.OneToOneField(TFM, on_delete=models.CASCADE, unique=True)
     # Reverse relationship: You can access the Tribunal from a TFM instance using `tfm.tribunal`
-    slot = models.ForeignKey(Slot, on_delete=models.CASCADE, related_name='tribunals')
+    slot = models.ForeignKey(Slot, on_delete=models.PROTECT, related_name='tribunals')
     index = models.IntegerField(default=1)
     evaluation = models.FileField(upload_to='tribunals/', null=True, blank=True)
+    confirmed = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('slot', 'index'),)

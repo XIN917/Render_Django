@@ -83,3 +83,35 @@ class TrackAPITestCase(TestCase):
         response = self.client.delete(f"/tracks/{self.track.id}/")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Track.objects.filter(id=self.track.id).exists())
+
+    def test_delete_track_blocked_by_slot(self):
+        """
+        Deleting a track referenced by a Slot should return 400 with a user-friendly error message.
+        """
+        from slots.models import Slot
+        self.client.force_authenticate(user=self.admin)
+        # Create a slot referencing self.track
+        Slot.objects.create(
+            track=self.track,
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            room="A1",
+            date=date(2025, 6, 20),
+            max_tfms=2
+        )
+        response = self.client.delete(f"/tracks/{self.track.id}/")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Cannot delete track", response.data.get("detail", ""))
+        # The track should still exist
+        self.assertTrue(Track.objects.filter(id=self.track.id).exists())
+
+    def test_delete_track_not_referenced_by_slot(self):
+        """
+        Deleting a track not referenced by any Slot should succeed and remove the track.
+        """
+        self.client.force_authenticate(user=self.admin)
+        # Create a new track not referenced by any slot
+        track2 = Track.objects.create(title="Unreferenced Track", semester=self.semester)
+        response = self.client.delete(f"/tracks/{track2.id}/")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Track.objects.filter(id=track2.id).exists())

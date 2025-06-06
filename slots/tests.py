@@ -313,3 +313,34 @@ class SlotTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
+
+    def test_delete_slot_referenced_by_tribunal(self):
+        """
+        Deleting a slot referenced by a Tribunal should return 400 with a user-friendly error message.
+        """
+        self.client.force_authenticate(user=self.admin)
+        url = f"/slots/{self.slot.id}/"
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Cannot delete slot", response.data.get("detail", ""))
+        # The slot should still exist
+        self.assertTrue(Slot.objects.filter(id=self.slot.id).exists())
+
+    def test_delete_slot_not_referenced_by_tribunal(self):
+        """
+        Deleting a slot not referenced by a Tribunal should succeed and remove the slot.
+        """
+        # Create a new slot not referenced by any tribunal
+        slot2 = Slot.objects.create(
+            track=self.track,
+            start_time=time(12, 0),
+            end_time=time(13, 0),
+            room="A2",
+            date=date(2025, 6, 18),
+            max_tfms=2
+        )
+        self.client.force_authenticate(user=self.admin)
+        url = f"/slots/{slot2.id}/"
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Slot.objects.filter(id=slot2.id).exists())

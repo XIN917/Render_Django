@@ -149,3 +149,13 @@ class TFMViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(available, many=True)
         return Response(serializer.data)
+
+    '''def destroy(self, request, *args, **kwargs):
+        from django.db.models.deletion import ProtectedError
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Cannot delete TFM: it is still referenced by a Tribunal."},
+                status=400
+            )'''
