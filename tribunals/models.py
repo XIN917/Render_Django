@@ -10,6 +10,7 @@ class Tribunal(models.Model):
     slot = models.ForeignKey(Slot, on_delete=models.PROTECT, related_name='tribunals')
     index = models.IntegerField(default=1)
     evaluation = models.FileField(upload_to='tribunals/', null=True, blank=True)
+    confirmed = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('slot', 'index'),)
