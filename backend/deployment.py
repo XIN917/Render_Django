@@ -21,7 +21,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'https://react-next-swart-zeta.vercel.app'
+    'https://react-next-swart-zeta.vercel.app',
+    'https://vercel-react-next.vercel.app/',
 ]
 
 DATABASES = {
